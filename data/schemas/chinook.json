@@ -1,0 +1,434 @@
+{
+  "domain": "chinook",
+  "tables": [
+    {
+      "table": "public.album",
+      "columns": [
+        {
+          "name": "album_id",
+          "type": "integer"
+        },
+        {
+          "name": "title",
+          "type": "character varying"
+        },
+        {
+          "name": "artist_id",
+          "type": "integer"
+        }
+      ],
+      "primary_key": [
+        "album_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "artist_id",
+          "ref_table": "public.artist",
+          "ref_column": "artist_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.artist",
+      "columns": [
+        {
+          "name": "artist_id",
+          "type": "integer"
+        },
+        {
+          "name": "name",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "artist_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.customer",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "integer"
+        },
+        {
+          "name": "first_name",
+          "type": "character varying"
+        },
+        {
+          "name": "last_name",
+          "type": "character varying"
+        },
+        {
+          "name": "company",
+          "type": "character varying"
+        },
+        {
+          "name": "address",
+          "type": "character varying"
+        },
+        {
+          "name": "city",
+          "type": "character varying"
+        },
+        {
+          "name": "state",
+          "type": "character varying"
+        },
+        {
+          "name": "country",
+          "type": "character varying"
+        },
+        {
+          "name": "postal_code",
+          "type": "character varying"
+        },
+        {
+          "name": "phone",
+          "type": "character varying"
+        },
+        {
+          "name": "fax",
+          "type": "character varying"
+        },
+        {
+          "name": "email",
+          "type": "character varying"
+        },
+        {
+          "name": "support_rep_id",
+          "type": "integer"
+        }
+      ],
+      "primary_key": [
+        "customer_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "support_rep_id",
+          "ref_table": "public.employee",
+          "ref_column": "employee_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.employee",
+      "columns": [
+        {
+          "name": "employee_id",
+          "type": "integer"
+        },
+        {
+          "name": "last_name",
+          "type": "character varying"
+        },
+        {
+          "name": "first_name",
+          "type": "character varying"
+        },
+        {
+          "name": "title",
+          "type": "character varying"
+        },
+        {
+          "name": "reports_to",
+          "type": "integer"
+        },
+        {
+          "name": "birth_date",
+          "type": "timestamp without time zone"
+        },
+        {
+          "name": "hire_date",
+          "type": "timestamp without time zone"
+        },
+        {
+          "name": "address",
+          "type": "character varying"
+        },
+        {
+          "name": "city",
+          "type": "character varying"
+        },
+        {
+          "name": "state",
+          "type": "character varying"
+        },
+        {
+          "name": "country",
+          "type": "character varying"
+        },
+        {
+          "name": "postal_code",
+          "type": "character varying"
+        },
+        {
+          "name": "phone",
+          "type": "character varying"
+        },
+        {
+          "name": "fax",
+          "type": "character varying"
+        },
+        {
+          "name": "email",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "employee_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "reports_to",
+          "ref_table": "public.employee",
+          "ref_column": "employee_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.genre",
+      "columns": [
+        {
+          "name": "genre_id",
+          "type": "integer"
+        },
+        {
+          "name": "name",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "genre_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.invoice",
+      "columns": [
+        {
+          "name": "invoice_id",
+          "type": "integer"
+        },
+        {
+          "name": "customer_id",
+          "type": "integer"
+        },
+        {
+          "name": "invoice_date",
+          "type": "timestamp without time zone"
+        },
+        {
+          "name": "billing_address",
+          "type": "character varying"
+        },
+        {
+          "name": "billing_city",
+          "type": "character varying"
+        },
+        {
+          "name": "billing_state",
+          "type": "character varying"
+        },
+        {
+          "name": "billing_country",
+          "type": "character varying"
+        },
+        {
+          "name": "billing_postal_code",
+          "type": "character varying"
+        },
+        {
+          "name": "total",
+          "type": "numeric"
+        }
+      ],
+      "primary_key": [
+        "invoice_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "customer_id",
+          "ref_table": "public.customer",
+          "ref_column": "customer_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.invoice_line",
+      "columns": [
+        {
+          "name": "invoice_line_id",
+          "type": "integer"
+        },
+        {
+          "name": "invoice_id",
+          "type": "integer"
+        },
+        {
+          "name": "track_id",
+          "type": "integer"
+        },
+        {
+          "name": "unit_price",
+          "type": "numeric"
+        },
+        {
+          "name": "quantity",
+          "type": "integer"
+        }
+      ],
+      "primary_key": [
+        "invoice_line_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "invoice_id",
+          "ref_table": "public.invoice",
+          "ref_column": "invoice_id"
+        },
+        {
+          "column": "track_id",
+          "ref_table": "public.track",
+          "ref_column": "track_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.media_type",
+      "columns": [
+        {
+          "name": "media_type_id",
+          "type": "integer"
+        },
+        {
+          "name": "name",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "media_type_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.playlist",
+      "columns": [
+        {
+          "name": "playlist_id",
+          "type": "integer"
+        },
+        {
+          "name": "name",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "playlist_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.playlist_track",
+      "columns": [
+        {
+          "name": "playlist_id",
+          "type": "integer"
+        },
+        {
+          "name": "track_id",
+          "type": "integer"
+        }
+      ],
+      "primary_key": [
+        "playlist_id",
+        "track_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "playlist_id",
+          "ref_table": "public.playlist",
+          "ref_column": "playlist_id"
+        },
+        {
+          "column": "track_id",
+          "ref_table": "public.track",
+          "ref_column": "track_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.track",
+      "columns": [
+        {
+          "name": "track_id",
+          "type": "integer"
+        },
+        {
+          "name": "name",
+          "type": "character varying"
+        },
+        {
+          "name": "album_id",
+          "type": "integer"
+        },
+        {
+          "name": "media_type_id",
+          "type": "integer"
+        },
+        {
+          "name": "genre_id",
+          "type": "integer"
+        },
+        {
+          "name": "composer",
+          "type": "character varying"
+        },
+        {
+          "name": "milliseconds",
+          "type": "integer"
+        },
+        {
+          "name": "bytes",
+          "type": "integer"
+        },
+        {
+          "name": "unit_price",
+          "type": "numeric"
+        }
+      ],
+      "primary_key": [
+        "track_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "album_id",
+          "ref_table": "public.album",
+          "ref_column": "album_id"
+        },
+        {
+          "column": "genre_id",
+          "ref_table": "public.genre",
+          "ref_column": "genre_id"
+        },
+        {
+          "column": "media_type_id",
+          "ref_table": "public.media_type",
+          "ref_column": "media_type_id"
+        }
+      ],
+      "description": ""
+    }
+  ]
+}

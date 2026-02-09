@@ -1,0 +1,38 @@
+{
+  "chinook": [
+    "top 5 customers by spend",
+    "top 10 artists by total track sales",
+    "most popular genre by number of tracks",
+    "total invoices per country",
+    "top 5 albums by number of tracks",
+    "customers who never made a purchase",
+    "average invoice total",
+    "top 5 cities by invoice count",
+    "employee who supports most customers",
+    "top 5 tracks by unit price"
+  ],
+  "dvdrental": [
+    "top 5 customers by total payments",
+    "most rented film titles",
+    "top 5 categories by rentals",
+    "total revenue by month",
+    "customers who rented more than 10 times",
+    "stores with highest revenue",
+    "top 5 actors by number of films",
+    "average rental duration",
+    "films never rented",
+    "top 10 cities by customers"
+  ],
+  "northwind": [
+    "top 5 customers by total order value",
+    "top selling products by quantity",
+    "revenue by country",
+    "orders per employee",
+    "top 5 suppliers by sales",
+    "most used shipper",
+    "monthly revenue trend",
+    "customers with no orders",
+    "top categories by sales",
+    "average order value"
+  ]
+}

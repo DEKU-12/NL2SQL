@@ -1,0 +1,588 @@
+{
+  "domain": "northwind",
+  "tables": [
+    {
+      "table": "public.categories",
+      "columns": [
+        {
+          "name": "category_id",
+          "type": "smallint"
+        },
+        {
+          "name": "category_name",
+          "type": "character varying"
+        },
+        {
+          "name": "description",
+          "type": "text"
+        },
+        {
+          "name": "picture",
+          "type": "bytea"
+        }
+      ],
+      "primary_key": [
+        "category_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.customer_customer_demo",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "character varying"
+        },
+        {
+          "name": "customer_type_id",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "customer_id",
+        "customer_type_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "customer_type_id",
+          "ref_table": "public.customer_demographics",
+          "ref_column": "customer_type_id"
+        },
+        {
+          "column": "customer_id",
+          "ref_table": "public.customers",
+          "ref_column": "customer_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.customer_demographics",
+      "columns": [
+        {
+          "name": "customer_type_id",
+          "type": "character varying"
+        },
+        {
+          "name": "customer_desc",
+          "type": "text"
+        }
+      ],
+      "primary_key": [
+        "customer_type_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.customers",
+      "columns": [
+        {
+          "name": "customer_id",
+          "type": "character varying"
+        },
+        {
+          "name": "company_name",
+          "type": "character varying"
+        },
+        {
+          "name": "contact_name",
+          "type": "character varying"
+        },
+        {
+          "name": "contact_title",
+          "type": "character varying"
+        },
+        {
+          "name": "address",
+          "type": "character varying"
+        },
+        {
+          "name": "city",
+          "type": "character varying"
+        },
+        {
+          "name": "region",
+          "type": "character varying"
+        },
+        {
+          "name": "postal_code",
+          "type": "character varying"
+        },
+        {
+          "name": "country",
+          "type": "character varying"
+        },
+        {
+          "name": "phone",
+          "type": "character varying"
+        },
+        {
+          "name": "fax",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "customer_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.employee_territories",
+      "columns": [
+        {
+          "name": "employee_id",
+          "type": "smallint"
+        },
+        {
+          "name": "territory_id",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "employee_id",
+        "territory_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "territory_id",
+          "ref_table": "public.territories",
+          "ref_column": "territory_id"
+        },
+        {
+          "column": "employee_id",
+          "ref_table": "public.employees",
+          "ref_column": "employee_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.employees",
+      "columns": [
+        {
+          "name": "employee_id",
+          "type": "smallint"
+        },
+        {
+          "name": "last_name",
+          "type": "character varying"
+        },
+        {
+          "name": "first_name",
+          "type": "character varying"
+        },
+        {
+          "name": "title",
+          "type": "character varying"
+        },
+        {
+          "name": "title_of_courtesy",
+          "type": "character varying"
+        },
+        {
+          "name": "birth_date",
+          "type": "date"
+        },
+        {
+          "name": "hire_date",
+          "type": "date"
+        },
+        {
+          "name": "address",
+          "type": "character varying"
+        },
+        {
+          "name": "city",
+          "type": "character varying"
+        },
+        {
+          "name": "region",
+          "type": "character varying"
+        },
+        {
+          "name": "postal_code",
+          "type": "character varying"
+        },
+        {
+          "name": "country",
+          "type": "character varying"
+        },
+        {
+          "name": "home_phone",
+          "type": "character varying"
+        },
+        {
+          "name": "extension",
+          "type": "character varying"
+        },
+        {
+          "name": "photo",
+          "type": "bytea"
+        },
+        {
+          "name": "notes",
+          "type": "text"
+        },
+        {
+          "name": "reports_to",
+          "type": "smallint"
+        },
+        {
+          "name": "photo_path",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "employee_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "reports_to",
+          "ref_table": "public.employees",
+          "ref_column": "employee_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.order_details",
+      "columns": [
+        {
+          "name": "order_id",
+          "type": "smallint"
+        },
+        {
+          "name": "product_id",
+          "type": "smallint"
+        },
+        {
+          "name": "unit_price",
+          "type": "real"
+        },
+        {
+          "name": "quantity",
+          "type": "smallint"
+        },
+        {
+          "name": "discount",
+          "type": "real"
+        }
+      ],
+      "primary_key": [
+        "order_id",
+        "product_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "product_id",
+          "ref_table": "public.products",
+          "ref_column": "product_id"
+        },
+        {
+          "column": "order_id",
+          "ref_table": "public.orders",
+          "ref_column": "order_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.orders",
+      "columns": [
+        {
+          "name": "order_id",
+          "type": "smallint"
+        },
+        {
+          "name": "customer_id",
+          "type": "character varying"
+        },
+        {
+          "name": "employee_id",
+          "type": "smallint"
+        },
+        {
+          "name": "order_date",
+          "type": "date"
+        },
+        {
+          "name": "required_date",
+          "type": "date"
+        },
+        {
+          "name": "shipped_date",
+          "type": "date"
+        },
+        {
+          "name": "ship_via",
+          "type": "smallint"
+        },
+        {
+          "name": "freight",
+          "type": "real"
+        },
+        {
+          "name": "ship_name",
+          "type": "character varying"
+        },
+        {
+          "name": "ship_address",
+          "type": "character varying"
+        },
+        {
+          "name": "ship_city",
+          "type": "character varying"
+        },
+        {
+          "name": "ship_region",
+          "type": "character varying"
+        },
+        {
+          "name": "ship_postal_code",
+          "type": "character varying"
+        },
+        {
+          "name": "ship_country",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "order_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "customer_id",
+          "ref_table": "public.customers",
+          "ref_column": "customer_id"
+        },
+        {
+          "column": "employee_id",
+          "ref_table": "public.employees",
+          "ref_column": "employee_id"
+        },
+        {
+          "column": "ship_via",
+          "ref_table": "public.shippers",
+          "ref_column": "shipper_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.products",
+      "columns": [
+        {
+          "name": "product_id",
+          "type": "smallint"
+        },
+        {
+          "name": "product_name",
+          "type": "character varying"
+        },
+        {
+          "name": "supplier_id",
+          "type": "smallint"
+        },
+        {
+          "name": "category_id",
+          "type": "smallint"
+        },
+        {
+          "name": "quantity_per_unit",
+          "type": "character varying"
+        },
+        {
+          "name": "unit_price",
+          "type": "real"
+        },
+        {
+          "name": "units_in_stock",
+          "type": "smallint"
+        },
+        {
+          "name": "units_on_order",
+          "type": "smallint"
+        },
+        {
+          "name": "reorder_level",
+          "type": "smallint"
+        },
+        {
+          "name": "discontinued",
+          "type": "integer"
+        }
+      ],
+      "primary_key": [
+        "product_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "category_id",
+          "ref_table": "public.categories",
+          "ref_column": "category_id"
+        },
+        {
+          "column": "supplier_id",
+          "ref_table": "public.suppliers",
+          "ref_column": "supplier_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.region",
+      "columns": [
+        {
+          "name": "region_id",
+          "type": "smallint"
+        },
+        {
+          "name": "region_description",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "region_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.shippers",
+      "columns": [
+        {
+          "name": "shipper_id",
+          "type": "smallint"
+        },
+        {
+          "name": "company_name",
+          "type": "character varying"
+        },
+        {
+          "name": "phone",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "shipper_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.suppliers",
+      "columns": [
+        {
+          "name": "supplier_id",
+          "type": "smallint"
+        },
+        {
+          "name": "company_name",
+          "type": "character varying"
+        },
+        {
+          "name": "contact_name",
+          "type": "character varying"
+        },
+        {
+          "name": "contact_title",
+          "type": "character varying"
+        },
+        {
+          "name": "address",
+          "type": "character varying"
+        },
+        {
+          "name": "city",
+          "type": "character varying"
+        },
+        {
+          "name": "region",
+          "type": "character varying"
+        },
+        {
+          "name": "postal_code",
+          "type": "character varying"
+        },
+        {
+          "name": "country",
+          "type": "character varying"
+        },
+        {
+          "name": "phone",
+          "type": "character varying"
+        },
+        {
+          "name": "fax",
+          "type": "character varying"
+        },
+        {
+          "name": "homepage",
+          "type": "text"
+        }
+      ],
+      "primary_key": [
+        "supplier_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "table": "public.territories",
+      "columns": [
+        {
+          "name": "territory_id",
+          "type": "character varying"
+        },
+        {
+          "name": "territory_description",
+          "type": "character varying"
+        },
+        {
+          "name": "region_id",
+          "type": "smallint"
+        }
+      ],
+      "primary_key": [
+        "territory_id"
+      ],
+      "foreign_keys": [
+        {
+          "column": "region_id",
+          "ref_table": "public.region",
+          "ref_column": "region_id"
+        }
+      ],
+      "description": ""
+    },
+    {
+      "table": "public.us_states",
+      "columns": [
+        {
+          "name": "state_id",
+          "type": "smallint"
+        },
+        {
+          "name": "state_name",
+          "type": "character varying"
+        },
+        {
+          "name": "state_abbr",
+          "type": "character varying"
+        },
+        {
+          "name": "state_region",
+          "type": "character varying"
+        }
+      ],
+      "primary_key": [
+        "state_id"
+      ],
+      "foreign_keys": [],
+      "description": ""
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+domains:
+  chinook:
+    dbname: chinook
+    schema_out: data/schemas/chinook.json
+
+  dvdrental:
+    dbname: dvdrental
+    schema_out: data/schemas/dvdrental.json
+
+  northwind:
+    dbname: northwind
+    schema_out: data/schemas/northwind.json
