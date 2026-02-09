@@ -1,0 +1,16 @@
+
+# Python venv
+.venv/
+venv/
+.env
+
+# HuggingFace / model caches
+.hf_cache/
+.huggingface/
+cache/
+**/__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
