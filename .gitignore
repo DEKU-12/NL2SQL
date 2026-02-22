@@ -1,16 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
 
-# Python venv
+# venv
 .venv/
 venv/
-.env
 
-# HuggingFace / model caches
+# HF / ML caches
 .hf_cache/
-.huggingface/
-cache/
-**/__pycache__/
-*.pyc
+.cache/
+**/.cache/
+huggingface/
+HF_HOME/
 
-# Mac
-.DS_Store
-
+# env secrets
+.env
