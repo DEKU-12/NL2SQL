@@ -1,102 +1,189 @@
 domain,question,status,error,pred_sql_raw,pred_sql_safe,gold_sql_raw,gold_sql_safe,pred_cols,gold_cols,pred_rows,gold_rows
-chinook,top 5 customers by spend,OK,,"SELECT c.first_name, c.last_name, SUM(i.total) AS total_spend
+chinook,top 5 customers by spend,OK,,"SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend
 FROM customer c
 JOIN invoice i ON i.customer_id = c.customer_id
 GROUP BY c.customer_id, c.first_name, c.last_name
 ORDER BY total_spend DESC
-LIMIT 5;","SELECT c.first_name, c.last_name, SUM(i.total) AS total_spend
+LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend
 FROM customer c
 JOIN invoice i ON i.customer_id = c.customer_id
 GROUP BY c.customer_id, c.first_name, c.last_name
 ORDER BY total_spend DESC
-LIMIT 5;","SELECT c.first_name, c.last_name, SUM(i.total) AS total_spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spend DESC LIMIT 5;","SELECT c.first_name, c.last_name, SUM(i.total) AS total_spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spend DESC LIMIT 5;","['first_name', 'last_name', 'total_spend']","['first_name', 'last_name', 'total_spend']",5.0,5.0
-chinook,top 10 artists by total track sales,OK,,"SELECT ar.name AS artist, SUM(t.unit_price * il.quantity) AS total_sales
-FROM artist ar
-JOIN album al ON al.artist_id = ar.artist_id
-JOIN track t ON t.album_id = al.album_id
-JOIN invoice_line il ON il.track_id = t.track_id
-GROUP BY ar.artist_id, ar.name
-ORDER BY total_sales DESC
-LIMIT 10;","SELECT ar.name AS artist, SUM(t.unit_price * il.quantity) AS total_sales
-FROM artist ar
-JOIN album al ON al.artist_id = ar.artist_id
-JOIN track t ON t.album_id = al.album_id
-JOIN invoice_line il ON il.track_id = t.track_id
-GROUP BY ar.artist_id, ar.name
-ORDER BY total_sales DESC
-LIMIT 10;","SELECT ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id JOIN invoice_line il ON il.track_id = t.track_id GROUP BY ar.artist_id, ar.name ORDER BY total_sales DESC LIMIT 10;","SELECT ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id JOIN invoice_line il ON il.track_id = t.track_id GROUP BY ar.artist_id, ar.name ORDER BY total_sales DESC LIMIT 10;","['artist', 'total_sales']","['artist', 'total_sales']",10.0,10.0
-chinook,most popular genre by number of tracks,OK,,"SELECT g.name AS genre, COUNT(t.track_id) AS num_tracks 
-FROM track t 
-JOIN genre g ON t.genre_id = g.genre_id 
-GROUP BY g.genre_id, g.name 
-ORDER BY num_tracks DESC 
-LIMIT 1;","SELECT g.name AS genre, COUNT(t.track_id) AS num_tracks 
-FROM track t 
-JOIN genre g ON t.genre_id = g.genre_id 
-GROUP BY g.genre_id, g.name 
-ORDER BY num_tracks DESC 
-LIMIT 1;","SELECT g.name AS genre, COUNT(t.track_id) AS num_tracks FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.genre_id, g.name ORDER BY num_tracks DESC LIMIT 1;","SELECT g.name AS genre, COUNT(t.track_id) AS num_tracks FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.genre_id, g.name ORDER BY num_tracks DESC LIMIT 1;","['genre', 'num_tracks']","['genre', 'num_tracks']",1.0,1.0
-chinook,total invoices per country,OK,,"SELECT i.billing_country AS country, COUNT(*) AS invoice_count 
+LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spend DESC LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spend DESC LIMIT 5;","['customer_id', 'first_name', 'last_name', 'total_spend']","['customer_id', 'first_name', 'last_name', 'total_spend']",5.0,5.0
+chinook,total invoices per country,OK,,"SELECT i.billing_country, COUNT(*) AS invoice_count 
 FROM invoice i 
 GROUP BY i.billing_country 
-ORDER BY invoice_count DESC;","SELECT i.billing_country AS country, COUNT(*) AS invoice_count 
+ORDER BY invoice_count DESC 
+LIMIT 200;","SELECT i.billing_country, COUNT(*) AS invoice_count 
 FROM invoice i 
 GROUP BY i.billing_country 
-ORDER BY invoice_count DESC
-LIMIT 200;","SELECT billing_country AS country, COUNT(*) AS invoice_count FROM invoice GROUP BY billing_country ORDER BY invoice_count DESC;","SELECT billing_country AS country, COUNT(*) AS invoice_count FROM invoice GROUP BY billing_country ORDER BY invoice_count DESC
-LIMIT 200;","['country', 'invoice_count']","['country', 'invoice_count']",24.0,24.0
-chinook,top 5 albums by number of tracks,OK,,"SELECT al.title AS album, COUNT(t.track_id) AS num_tracks 
-FROM album al 
-JOIN track t ON t.album_id = al.album_id 
-GROUP BY al.album_id, al.title 
-ORDER BY num_tracks DESC 
-LIMIT 5;","SELECT al.title AS album, COUNT(t.track_id) AS num_tracks 
-FROM album al 
-JOIN track t ON t.album_id = al.album_id 
-GROUP BY al.album_id, al.title 
-ORDER BY num_tracks DESC 
-LIMIT 5;","SELECT al.title AS album, COUNT(t.track_id) AS num_tracks FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY num_tracks DESC LIMIT 5;","SELECT al.title AS album, COUNT(t.track_id) AS num_tracks FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY num_tracks DESC LIMIT 5;","['album', 'num_tracks']","['album', 'num_tracks']",5.0,5.0
-chinook,customers who never made a purchase,OK,,"SELECT c.customer_id, c.first_name, c.last_name
-FROM customer c
-LEFT JOIN invoice i ON i.customer_id = c.customer_id
-WHERE i.invoice_id IS NULL
-LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name
-FROM customer c
-LEFT JOIN invoice i ON i.customer_id = c.customer_id
-WHERE i.invoice_id IS NULL
-LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, c.email FROM customer c LEFT JOIN invoice i ON i.customer_id = c.customer_id WHERE i.invoice_id IS NULL ORDER BY c.customer_id LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, c.email FROM customer c LEFT JOIN invoice i ON i.customer_id = c.customer_id WHERE i.invoice_id IS NULL ORDER BY c.customer_id LIMIT 200;","['customer_id', 'first_name', 'last_name']","['customer_id', 'first_name', 'last_name', 'email']",0.0,0.0
+ORDER BY invoice_count DESC 
+LIMIT 200;","SELECT i.billing_country AS country, COUNT(*) AS invoice_count FROM invoice i GROUP BY i.billing_country ORDER BY invoice_count DESC LIMIT 200;","SELECT i.billing_country AS country, COUNT(*) AS invoice_count FROM invoice i GROUP BY i.billing_country ORDER BY invoice_count DESC LIMIT 200;","['billing_country', 'invoice_count']","['country', 'invoice_count']",24.0,24.0
+chinook,top 5 cities by invoice count,OK,,"SELECT i.billing_city AS city, COUNT(*) AS invoice_count 
+FROM invoice i 
+GROUP BY i.billing_city 
+ORDER BY invoice_count DESC 
+LIMIT 5;","SELECT i.billing_city AS city, COUNT(*) AS invoice_count 
+FROM invoice i 
+GROUP BY i.billing_city 
+ORDER BY invoice_count DESC 
+LIMIT 5;","SELECT i.billing_city AS city, COUNT(*) AS invoice_count FROM invoice i GROUP BY i.billing_city ORDER BY invoice_count DESC LIMIT 5;","SELECT i.billing_city AS city, COUNT(*) AS invoice_count FROM invoice i GROUP BY i.billing_city ORDER BY invoice_count DESC LIMIT 5;","['city', 'invoice_count']","['city', 'invoice_count']",5.0,5.0
 chinook,average invoice total,OK,,"SELECT AVG(i.total) AS avg_invoice_total 
-FROM invoice i;","SELECT AVG(i.total) AS avg_invoice_total 
+FROM public.invoice i 
+LIMIT 200;","SELECT AVG(i.total) AS avg_invoice_total 
+FROM public.invoice i 
+LIMIT 200;",SELECT AVG(i.total) AS avg_invoice_total FROM invoice i LIMIT 200;,SELECT AVG(i.total) AS avg_invoice_total FROM invoice i LIMIT 200;,['avg_invoice_total'],['avg_invoice_total'],1.0,1.0
+chinook,total revenue overall,OK,,"SELECT SUM(i.total) AS total_revenue
 FROM invoice i
-LIMIT 200;",SELECT AVG(total) AS avg_invoice_total FROM invoice;,"SELECT AVG(total) AS avg_invoice_total FROM invoice
-LIMIT 200;",['avg_invoice_total'],['avg_invoice_total'],1.0,1.0
-chinook,top 5 cities by invoice count,OK,,"SELECT i.billing_city AS city, COUNT(*) AS invoice_count
+LIMIT 200;","SELECT SUM(i.total) AS total_revenue
 FROM invoice i
-GROUP BY i.billing_city
-ORDER BY invoice_count DESC
-LIMIT 5;","SELECT i.billing_city AS city, COUNT(*) AS invoice_count
-FROM invoice i
-GROUP BY i.billing_city
-ORDER BY invoice_count DESC
-LIMIT 5;","SELECT billing_city AS city, COUNT(*) AS invoice_count FROM invoice GROUP BY billing_city ORDER BY invoice_count DESC LIMIT 5;","SELECT billing_city AS city, COUNT(*) AS invoice_count FROM invoice GROUP BY billing_city ORDER BY invoice_count DESC LIMIT 5;","['city', 'invoice_count']","['city', 'invoice_count']",5.0,5.0
-chinook,employee who supports most customers,OK,,"SELECT e.first_name, e.last_name, COUNT(c.customer_id) AS customer_count
-FROM employee e
-JOIN customer c ON c.support_rep_id = e.employee_id
-GROUP BY e.employee_id, e.first_name, e.last_name
-ORDER BY customer_count DESC
-LIMIT 1;","SELECT e.first_name, e.last_name, COUNT(c.customer_id) AS customer_count
-FROM employee e
-JOIN customer c ON c.support_rep_id = e.employee_id
-GROUP BY e.employee_id, e.first_name, e.last_name
-ORDER BY customer_count DESC
-LIMIT 1;","SELECT e.first_name, e.last_name, COUNT(c.customer_id) AS customer_count FROM employee e JOIN customer c ON c.support_rep_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY customer_count DESC LIMIT 1;","SELECT e.first_name, e.last_name, COUNT(c.customer_id) AS customer_count FROM employee e JOIN customer c ON c.support_rep_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY customer_count DESC LIMIT 1;","['first_name', 'last_name', 'customer_count']","['first_name', 'last_name', 'customer_count']",1.0,1.0
-chinook,top 5 tracks by unit price,OK,,"SELECT t.name AS track, t.unit_price
+LIMIT 200;",SELECT SUM(i.total) AS total_revenue FROM invoice i LIMIT 200;,SELECT SUM(i.total) AS total_revenue FROM invoice i LIMIT 200;,['total_revenue'],['total_revenue'],1.0,1.0
+chinook,top 10 customers by number of invoices,OK,,"SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS num_invoices
+FROM customer c
+JOIN invoice i ON i.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY num_invoices DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS num_invoices
+FROM customer c
+JOIN invoice i ON i.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY num_invoices DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS invoice_count FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY invoice_count DESC LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS invoice_count FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY invoice_count DESC LIMIT 10;","['customer_id', 'first_name', 'last_name', 'num_invoices']","['customer_id', 'first_name', 'last_name', 'invoice_count']",10.0,10.0
+chinook,customers who never made a purchase,OK,,"SELECT c.customer_id, c.first_name, c.last_name 
+FROM customer c 
+LEFT JOIN invoice i ON i.customer_id = c.customer_id 
+WHERE i.invoice_id IS NULL 
+ORDER BY c.customer_id 
+LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name 
+FROM customer c 
+LEFT JOIN invoice i ON i.customer_id = c.customer_id 
+WHERE i.invoice_id IS NULL 
+ORDER BY c.customer_id 
+LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, c.email FROM customer c LEFT JOIN invoice i ON i.customer_id = c.customer_id WHERE i.invoice_id IS NULL ORDER BY c.customer_id LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, c.email FROM customer c LEFT JOIN invoice i ON i.customer_id = c.customer_id WHERE i.invoice_id IS NULL ORDER BY c.customer_id LIMIT 200;","['customer_id', 'first_name', 'last_name']","['customer_id', 'first_name', 'last_name', 'email']",0.0,0.0
+chinook,top 10 artists by total track sales,FAIL_EXEC_PRED,"column t.quantity does not exist
+LINE 2:        SUM(t.unit_price * t.quantity) AS total_sales
+                                  ^
+","SELECT ar.artist_id, ar.name AS artist,
+       SUM(t.unit_price * t.quantity) AS total_sales
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+JOIN track t ON t.album_id = al.album_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY total_sales DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist,
+       SUM(t.unit_price * t.quantity) AS total_sales
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+JOIN track t ON t.album_id = al.album_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY total_sales DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id JOIN invoice_line il ON il.track_id = t.track_id GROUP BY ar.artist_id, ar.name ORDER BY total_sales DESC LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id JOIN invoice_line il ON il.track_id = t.track_id GROUP BY ar.artist_id, ar.name ORDER BY total_sales DESC LIMIT 10;",,,,
+chinook,top 5 albums by number of tracks,OK,,"SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks
+FROM album al
+JOIN track t ON t.album_id = al.album_id
+GROUP BY al.album_id, al.title
+ORDER BY num_tracks DESC
+LIMIT 5;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks
+FROM album al
+JOIN track t ON t.album_id = al.album_id
+GROUP BY al.album_id, al.title
+ORDER BY num_tracks DESC
+LIMIT 5;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY num_tracks DESC LIMIT 5;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY num_tracks DESC LIMIT 5;","['album_id', 'album', 'num_tracks']","['album_id', 'album', 'num_tracks']",5.0,5.0
+chinook,top 5 genres by number of tracks,OK,,"SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS num_tracks
+FROM genre g
+JOIN track t ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY num_tracks DESC
+LIMIT 5;","SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS num_tracks
+FROM genre g
+JOIN track t ON t.genre_id = g.genre_id
+GROUP BY g.genre_id, g.name
+ORDER BY num_tracks DESC
+LIMIT 5;","SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS num_tracks FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.genre_id, g.name ORDER BY num_tracks DESC LIMIT 5;","SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS num_tracks FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.genre_id, g.name ORDER BY num_tracks DESC LIMIT 5;","['genre_id', 'genre', 'num_tracks']","['genre_id', 'genre', 'num_tracks']",5.0,5.0
+chinook,number of distinct customers,OK,,"SELECT COUNT(DISTINCT c.customer_id) AS num_customers 
+FROM public.customer c;","SELECT COUNT(DISTINCT c.customer_id) AS num_customers 
+FROM public.customer c
+LIMIT 200;",SELECT COUNT(*) AS customer_count FROM customer LIMIT 200;,SELECT COUNT(*) AS customer_count FROM customer LIMIT 200;,['num_customers'],['customer_count'],1.0,1.0
+chinook,number of distinct artists,OK,,"SELECT COUNT(DISTINCT ar.artist_id) AS num_artists 
+FROM public.artist ar;","SELECT COUNT(DISTINCT ar.artist_id) AS num_artists 
+FROM public.artist ar
+LIMIT 200;",SELECT COUNT(*) AS artist_count FROM artist LIMIT 200;,SELECT COUNT(*) AS artist_count FROM artist LIMIT 200;,['num_artists'],['artist_count'],1.0,1.0
+chinook,tracks per album,OK,,"SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count
+FROM album al
+JOIN track t ON t.album_id = al.album_id
+GROUP BY al.album_id, al.title
+ORDER BY track_count DESC
+LIMIT 200;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count
+FROM album al
+JOIN track t ON t.album_id = al.album_id
+GROUP BY al.album_id, al.title
+ORDER BY track_count DESC
+LIMIT 200;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY track_count DESC LIMIT 200;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY track_count DESC LIMIT 200;","['album_id', 'album', 'track_count']","['album_id', 'album', 'track_count']",200.0,200.0
+chinook,albums per artist,WRONG,,"SELECT al.album_id, ar.name AS artist, COUNT(al.album_id) AS album_count
+FROM album al
+JOIN artist ar ON al.artist_id = ar.artist_id
+GROUP BY al.album_id, ar.name
+ORDER BY album_count DESC
+LIMIT 200;","SELECT al.album_id, ar.name AS artist, COUNT(al.album_id) AS album_count
+FROM album al
+JOIN artist ar ON al.artist_id = ar.artist_id
+GROUP BY al.album_id, ar.name
+ORDER BY album_count DESC
+LIMIT 200;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count FROM artist ar JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id, ar.name ORDER BY album_count DESC LIMIT 200;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count FROM artist ar JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id, ar.name ORDER BY album_count DESC LIMIT 200;","['album_id', 'artist', 'album_count']","['artist_id', 'artist', 'album_count']",200.0,200.0
+chinook,artists with most albums,OK,,"SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY album_count DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY album_count DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count FROM artist ar JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id, ar.name ORDER BY album_count DESC LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count FROM artist ar JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id, ar.name ORDER BY album_count DESC LIMIT 10;","['artist_id', 'artist', 'album_count']","['artist_id', 'artist', 'album_count']",10.0,10.0
+chinook,top 5 tracks by unit price,OK,,"SELECT t.track_id, t.name AS track, t.unit_price
 FROM track t
 ORDER BY t.unit_price DESC, t.track_id ASC
-LIMIT 5;","SELECT t.name AS track, t.unit_price
+LIMIT 5;","SELECT t.track_id, t.name AS track, t.unit_price
 FROM track t
 ORDER BY t.unit_price DESC, t.track_id ASC
-LIMIT 5;","SELECT t.name AS track, t.unit_price FROM track t ORDER BY t.unit_price DESC, t.track_id ASC LIMIT 5;","SELECT t.name AS track, t.unit_price FROM track t ORDER BY t.unit_price DESC, t.track_id ASC LIMIT 5;","['track', 'unit_price']","['track', 'unit_price']",5.0,5.0
+LIMIT 5;","SELECT t.track_id, t.name AS track, t.unit_price FROM track t ORDER BY t.unit_price DESC, t.track_id ASC LIMIT 5;","SELECT t.track_id, t.name AS track, t.unit_price FROM track t ORDER BY t.unit_price DESC, t.track_id ASC LIMIT 5;","['track_id', 'track', 'unit_price']","['track_id', 'track', 'unit_price']",5.0,5.0
+chinook,longest track overall,OK,,"SELECT t.track_id, t.name AS track, t.milliseconds 
+FROM public.track t 
+ORDER BY t.milliseconds DESC 
+LIMIT 1;","SELECT t.track_id, t.name AS track, t.milliseconds 
+FROM public.track t 
+ORDER BY t.milliseconds DESC 
+LIMIT 1;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 1;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 1;","['track_id', 'track', 'milliseconds']","['track_id', 'track', 'milliseconds']",1.0,1.0
+chinook,top 10 longest tracks,OK,,"SELECT t.track_id, t.name AS track, t.milliseconds 
+FROM track t 
+ORDER BY t.milliseconds DESC 
+LIMIT 10;","SELECT t.track_id, t.name AS track, t.milliseconds 
+FROM track t 
+ORDER BY t.milliseconds DESC 
+LIMIT 10;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 10;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 10;","['track_id', 'track', 'milliseconds']","['track_id', 'track', 'milliseconds']",10.0,10.0
+chinook,playlists with most tracks,OK,,"SELECT p.playlist_id, p.name, COUNT(pt.track_id) AS track_count 
+FROM playlist p 
+JOIN playlist_track pt ON pt.playlist_id = p.playlist_id 
+GROUP BY p.playlist_id, p.name 
+ORDER BY track_count DESC 
+LIMIT 10;","SELECT p.playlist_id, p.name, COUNT(pt.track_id) AS track_count 
+FROM playlist p 
+JOIN playlist_track pt ON pt.playlist_id = p.playlist_id 
+GROUP BY p.playlist_id, p.name 
+ORDER BY track_count DESC 
+LIMIT 10;","SELECT p.playlist_id, p.name AS playlist, COUNT(pt.track_id) AS track_count FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id GROUP BY p.playlist_id, p.name ORDER BY track_count DESC LIMIT 10;","SELECT p.playlist_id, p.name AS playlist, COUNT(pt.track_id) AS track_count FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id GROUP BY p.playlist_id, p.name ORDER BY track_count DESC LIMIT 10;","['playlist_id', 'name', 'track_count']","['playlist_id', 'playlist', 'track_count']",10.0,10.0
+chinook,tracks that appear in the most playlists,OK,,"SELECT t.track_id, t.name AS track, COUNT(pt.playlist_id) AS playlist_count 
+FROM track t 
+JOIN playlist_track pt ON pt.track_id = t.track_id 
+GROUP BY t.track_id, t.name 
+ORDER BY playlist_count DESC 
+LIMIT 10;","SELECT t.track_id, t.name AS track, COUNT(pt.playlist_id) AS playlist_count 
+FROM track t 
+JOIN playlist_track pt ON pt.track_id = t.track_id 
+GROUP BY t.track_id, t.name 
+ORDER BY playlist_count DESC 
+LIMIT 10;","SELECT t.track_id, t.name AS track, COUNT(pt.playlist_id) AS playlist_count FROM track t JOIN playlist_track pt ON pt.track_id = t.track_id GROUP BY t.track_id, t.name ORDER BY playlist_count DESC LIMIT 10;","SELECT t.track_id, t.name AS track, COUNT(pt.playlist_id) AS playlist_count FROM track t JOIN playlist_track pt ON pt.track_id = t.track_id GROUP BY t.track_id, t.name ORDER BY playlist_count DESC LIMIT 10;","['track_id', 'track', 'playlist_count']","['track_id', 'track', 'playlist_count']",10.0,10.0
 dvdrental,top 5 customers by total payments,OK,,"SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
 FROM customer c
 JOIN payment p ON p.customer_id = c.customer_id
@@ -108,89 +195,66 @@ JOIN payment p ON p.customer_id = c.customer_id
 GROUP BY c.customer_id, c.first_name, c.last_name
 ORDER BY total_payments DESC
 LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 5;","['customer_id', 'first_name', 'last_name', 'total_payments']","['customer_id', 'first_name', 'last_name', 'total_payments']",5.0,5.0
-dvdrental,most rented film titles,OK,,"SELECT f.title, COUNT(*) AS rental_count 
+dvdrental,top 10 customers by total payments,OK,,"SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_payments DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_payments DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 10;","['customer_id', 'first_name', 'last_name', 'total_payments']","['customer_id', 'first_name', 'last_name', 'total_payments']",10.0,10.0
+dvdrental,most rented film titles,WRONG,,"SELECT f.title, COUNT(r.rental_id) AS rentals 
 FROM rental r 
 JOIN inventory i ON i.inventory_id = r.inventory_id 
 JOIN film f ON f.film_id = i.film_id 
-GROUP BY f.film_id, f.title 
-ORDER BY rental_count DESC 
-LIMIT 10;","SELECT f.title, COUNT(*) AS rental_count 
+GROUP BY f.title 
+ORDER BY rentals DESC 
+LIMIT 10;","SELECT f.title, COUNT(r.rental_id) AS rentals 
 FROM rental r 
 JOIN inventory i ON i.inventory_id = r.inventory_id 
 JOIN film f ON f.film_id = i.film_id 
-GROUP BY f.film_id, f.title 
-ORDER BY rental_count DESC 
-LIMIT 10;","SELECT f.title, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 10;","SELECT f.title, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 10;","['title', 'rental_count']","['title', 'rental_count']",10.0,10.0
-dvdrental,top 5 categories by rentals,OK,,"SELECT c.name, COUNT(*) AS rental_count 
-FROM film_category fc 
-JOIN category c ON c.category_id = fc.category_id 
-JOIN inventory i ON i.film_id = fc.film_id 
-JOIN rental r ON r.inventory_id = i.inventory_id 
-GROUP BY c.name 
-ORDER BY rental_count DESC 
-LIMIT 5;","SELECT c.name, COUNT(*) AS rental_count 
-FROM film_category fc 
-JOIN category c ON c.category_id = fc.category_id 
-JOIN inventory i ON i.film_id = fc.film_id 
-JOIN rental r ON r.inventory_id = i.inventory_id 
-GROUP BY c.name 
-ORDER BY rental_count DESC 
-LIMIT 5;","SELECT c.name AS category, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id JOIN film_category fc ON fc.film_id = f.film_id JOIN category c ON c.category_id = fc.category_id GROUP BY c.category_id, c.name ORDER BY rental_count DESC LIMIT 5;","SELECT c.name AS category, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id JOIN film_category fc ON fc.film_id = f.film_id JOIN category c ON c.category_id = fc.category_id GROUP BY c.category_id, c.name ORDER BY rental_count DESC LIMIT 5;","['name', 'rental_count']","['category', 'rental_count']",5.0,5.0
+GROUP BY f.title 
+ORDER BY rentals DESC 
+LIMIT 10;","SELECT f.film_id, f.title, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 10;","SELECT f.film_id, f.title, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 10;","['title', 'rentals']","['film_id', 'title', 'rental_count']",10.0,10.0
+dvdrental,top 5 categories by rentals,WRONG,,"SELECT c.category_id, c.name AS category, COUNT(fc.film_id) AS rental_count
+FROM film_category fc
+JOIN category c ON c.category_id = fc.category_id
+GROUP BY c.category_id, c.name
+ORDER BY rental_count DESC
+LIMIT 5;","SELECT c.category_id, c.name AS category, COUNT(fc.film_id) AS rental_count
+FROM film_category fc
+JOIN category c ON c.category_id = fc.category_id
+GROUP BY c.category_id, c.name
+ORDER BY rental_count DESC
+LIMIT 5;","SELECT c.category_id, c.name AS category, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id JOIN film_category fc ON fc.film_id = f.film_id JOIN category c ON c.category_id = fc.category_id GROUP BY c.category_id, c.name ORDER BY rental_count DESC LIMIT 5;","SELECT c.category_id, c.name AS category, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id JOIN film_category fc ON fc.film_id = f.film_id JOIN category c ON c.category_id = fc.category_id GROUP BY c.category_id, c.name ORDER BY rental_count DESC LIMIT 5;","['category_id', 'category', 'rental_count']","['category_id', 'category', 'rental_count']",5.0,5.0
 dvdrental,total revenue by month,OK,,"SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
 FROM payment p
 GROUP BY month
-ORDER BY month;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+ORDER BY month
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
 FROM payment p
 GROUP BY month
 ORDER BY month
-LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month
-LIMIT 200;","['month', 'revenue']","['month', 'revenue']",4.0,4.0
-dvdrental,customers who rented more than 10 times,WRONG,,"SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals
-FROM customer c
-JOIN rental r ON r.customer_id = c.customer_id
-GROUP BY c.customer_id, c.first_name, c.last_name
-HAVING COUNT(r.rental_id) > 10
-ORDER BY rentals DESC
-LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals
-FROM customer c
-JOIN rental r ON r.customer_id = c.customer_id
-GROUP BY c.customer_id, c.first_name, c.last_name
-HAVING COUNT(r.rental_id) > 10
-ORDER BY rentals DESC
-LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals FROM customer c JOIN rental r ON r.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(r.rental_id) > 10 ORDER BY rentals DESC;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals FROM customer c JOIN rental r ON r.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(r.rental_id) > 10 ORDER BY rentals DESC
-LIMIT 200;","['customer_id', 'first_name', 'last_name', 'rentals']","['customer_id', 'first_name', 'last_name', 'rentals']",10.0,200.0
-dvdrental,stores with highest revenue,OK,,"SELECT s.store_id, SUM(p.amount) AS revenue
-FROM store s
-JOIN staff st ON st.store_id = s.store_id
-JOIN payment p ON p.staff_id = st.staff_id
-GROUP BY s.store_id
-ORDER BY revenue DESC
-LIMIT 10;","SELECT s.store_id, SUM(p.amount) AS revenue
-FROM store s
-JOIN staff st ON st.store_id = s.store_id
-JOIN payment p ON p.staff_id = st.staff_id
-GROUP BY s.store_id
-ORDER BY revenue DESC
-LIMIT 10;","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC;","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC
-LIMIT 200;","['store_id', 'revenue']","['store_id', 'revenue']",2.0,2.0
-dvdrental,top 5 actors by number of films,OK,,"SELECT a.first_name, a.last_name, COUNT(fa.film_id) AS film_count
-FROM actor a
-JOIN film_actor fa ON fa.actor_id = a.actor_id
-GROUP BY a.actor_id, a.first_name, a.last_name
-ORDER BY film_count DESC
-LIMIT 5;","SELECT a.first_name, a.last_name, COUNT(fa.film_id) AS film_count
-FROM actor a
-JOIN film_actor fa ON fa.actor_id = a.actor_id
-GROUP BY a.actor_id, a.first_name, a.last_name
-ORDER BY film_count DESC
-LIMIT 5;","SELECT a.first_name, a.last_name, COUNT(fa.film_id) AS film_count FROM actor a JOIN film_actor fa ON fa.actor_id = a.actor_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY film_count DESC LIMIT 5;","SELECT a.first_name, a.last_name, COUNT(fa.film_id) AS film_count FROM actor a JOIN film_actor fa ON fa.actor_id = a.actor_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY film_count DESC LIMIT 5;","['first_name', 'last_name', 'film_count']","['first_name', 'last_name', 'film_count']",5.0,5.0
-dvdrental,average rental duration,OK,,"SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days
-FROM rental r
-WHERE r.return_date IS NOT NULL;","SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;","['month', 'revenue']","['month', 'revenue']",4.0,4.0
+dvdrental,total revenue by year,OK,,"SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY year
+ORDER BY year
+LIMIT 200;","SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY year
+ORDER BY year
+LIMIT 200;","SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue FROM payment p GROUP BY year ORDER BY year LIMIT 200;","SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue FROM payment p GROUP BY year ORDER BY year LIMIT 200;","['year', 'revenue']","['year', 'revenue']",1.0,1.0
+dvdrental,average rental duration in days,OK,,"SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days
 FROM rental r
 WHERE r.return_date IS NOT NULL
-LIMIT 200;",SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days FROM rental r WHERE r.return_date IS NOT NULL;,"SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days FROM rental r WHERE r.return_date IS NOT NULL
-LIMIT 200;",['avg_days'],['avg_days'],1.0,1.0
+LIMIT 200;","SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days
+FROM rental r
+WHERE r.return_date IS NOT NULL
+LIMIT 200;",SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days FROM rental r WHERE r.return_date IS NOT NULL LIMIT 200;,SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days FROM rental r WHERE r.return_date IS NOT NULL LIMIT 200;,['avg_days'],['avg_days'],1.0,1.0
 dvdrental,films never rented,OK,,"SELECT f.film_id, f.title 
 FROM film f 
 LEFT JOIN inventory i ON i.film_id = f.film_id 
@@ -204,19 +268,146 @@ LEFT JOIN rental r ON r.inventory_id = i.inventory_id
 WHERE r.rental_id IS NULL 
 ORDER BY f.film_id 
 LIMIT 200;","SELECT f.film_id, f.title FROM film f LEFT JOIN inventory i ON i.film_id = f.film_id LEFT JOIN rental r ON r.inventory_id = i.inventory_id WHERE r.rental_id IS NULL ORDER BY f.film_id LIMIT 200;","SELECT f.film_id, f.title FROM film f LEFT JOIN inventory i ON i.film_id = f.film_id LEFT JOIN rental r ON r.inventory_id = i.inventory_id WHERE r.rental_id IS NULL ORDER BY f.film_id LIMIT 200;","['film_id', 'title']","['film_id', 'title']",43.0,43.0
-dvdrental,top 10 cities by customers,OK,,"SELECT ci.city, COUNT(c.customer_id) AS customers
+dvdrental,customers who rented more than 10 times,OK,,"SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals
+FROM customer c
+JOIN rental r ON r.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING COUNT(r.rental_id) > 10
+ORDER BY rentals DESC
+LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals
+FROM customer c
+JOIN rental r ON r.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+HAVING COUNT(r.rental_id) > 10
+ORDER BY rentals DESC
+LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals FROM customer c JOIN rental r ON r.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(r.rental_id) > 10 ORDER BY rentals DESC LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals FROM customer c JOIN rental r ON r.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(r.rental_id) > 10 ORDER BY rentals DESC LIMIT 200;","['customer_id', 'first_name', 'last_name', 'rentals']","['customer_id', 'first_name', 'last_name', 'rentals']",200.0,200.0
+dvdrental,store with highest revenue,OK,,"SELECT s.store_id, SUM(p.amount) AS revenue
+FROM store s
+JOIN staff st ON st.store_id = s.store_id
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY s.store_id
+ORDER BY revenue DESC
+LIMIT 1;","SELECT s.store_id, SUM(p.amount) AS revenue
+FROM store s
+JOIN staff st ON st.store_id = s.store_id
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY s.store_id
+ORDER BY revenue DESC
+LIMIT 1;","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC LIMIT 1;","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC LIMIT 1;","['store_id', 'revenue']","['store_id', 'revenue']",1.0,1.0
+dvdrental,revenue by store,OK,,"SELECT s.store_id, SUM(p.amount) AS revenue
+FROM store s
+JOIN staff st ON st.store_id = s.store_id
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY s.store_id
+ORDER BY revenue DESC
+LIMIT 200;","SELECT s.store_id, SUM(p.amount) AS revenue
+FROM store s
+JOIN staff st ON st.store_id = s.store_id
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY s.store_id
+ORDER BY revenue DESC
+LIMIT 200;","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC LIMIT 200;","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC LIMIT 200;","['store_id', 'revenue']","['store_id', 'revenue']",2.0,2.0
+dvdrental,revenue by staff member,WRONG,,"SELECT st.staff_id, SUM(p.amount) AS revenue 
+FROM staff st 
+JOIN payment p ON p.staff_id = st.staff_id 
+GROUP BY st.staff_id 
+ORDER BY revenue DESC 
+LIMIT 200;","SELECT st.staff_id, SUM(p.amount) AS revenue 
+FROM staff st 
+JOIN payment p ON p.staff_id = st.staff_id 
+GROUP BY st.staff_id 
+ORDER BY revenue DESC 
+LIMIT 200;","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id = st.staff_id GROUP BY st.staff_id, st.first_name, st.last_name ORDER BY revenue DESC LIMIT 200;","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id = st.staff_id GROUP BY st.staff_id, st.first_name, st.last_name ORDER BY revenue DESC LIMIT 200;","['staff_id', 'revenue']","['staff_id', 'first_name', 'last_name', 'revenue']",2.0,2.0
+dvdrental,top 5 staff by revenue,WRONG,,"SELECT st.staff_id, SUM(p.amount) AS revenue
+FROM staff st
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY st.staff_id
+ORDER BY revenue DESC
+LIMIT 5;","SELECT st.staff_id, SUM(p.amount) AS revenue
+FROM staff st
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY st.staff_id
+ORDER BY revenue DESC
+LIMIT 5;","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id = st.staff_id GROUP BY st.staff_id, st.first_name, st.last_name ORDER BY revenue DESC LIMIT 5;","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id = st.staff_id GROUP BY st.staff_id, st.first_name, st.last_name ORDER BY revenue DESC LIMIT 5;","['staff_id', 'revenue']","['staff_id', 'first_name', 'last_name', 'revenue']",2.0,2.0
+dvdrental,top 10 cities by customers,WRONG,,"SELECT ci.city, COUNT(c.customer_id) AS customers
 FROM customer c
 JOIN address a ON a.address_id = c.address_id
 JOIN city ci ON ci.city_id = a.city_id
-GROUP BY ci.city_id, ci.city
+GROUP BY ci.city
 ORDER BY customers DESC
 LIMIT 10;","SELECT ci.city, COUNT(c.customer_id) AS customers
 FROM customer c
 JOIN address a ON a.address_id = c.address_id
 JOIN city ci ON ci.city_id = a.city_id
-GROUP BY ci.city_id, ci.city
+GROUP BY ci.city
 ORDER BY customers DESC
-LIMIT 10;","SELECT ci.city, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id GROUP BY ci.city_id, ci.city ORDER BY customers DESC LIMIT 10;","SELECT ci.city, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id GROUP BY ci.city_id, ci.city ORDER BY customers DESC LIMIT 10;","['city', 'customers']","['city', 'customers']",10.0,10.0
+LIMIT 10;","SELECT ci.city_id, ci.city, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id GROUP BY ci.city_id, ci.city ORDER BY customers DESC LIMIT 10;","SELECT ci.city_id, ci.city, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id GROUP BY ci.city_id, ci.city ORDER BY customers DESC LIMIT 10;","['city', 'customers']","['city_id', 'city', 'customers']",10.0,10.0
+dvdrental,top 10 countries by customers,FAIL_EXEC_PRED,"column ci.country does not exist
+LINE 1: SELECT ci.country, COUNT(c.customer_id) AS customers
+               ^
+HINT:  Perhaps you meant to reference the column ""co.country"".
+","SELECT ci.country, COUNT(c.customer_id) AS customers
+FROM customer c
+JOIN address a ON a.address_id = c.address_id
+JOIN city ci ON ci.city_id = a.city_id
+JOIN country co ON co.country_id = ci.country_id
+GROUP BY ci.country
+ORDER BY customers DESC
+LIMIT 10;","SELECT ci.country, COUNT(c.customer_id) AS customers
+FROM customer c
+JOIN address a ON a.address_id = c.address_id
+JOIN city ci ON ci.city_id = a.city_id
+JOIN country co ON co.country_id = ci.country_id
+GROUP BY ci.country
+ORDER BY customers DESC
+LIMIT 10;","SELECT co.country_id, co.country, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id JOIN country co ON co.country_id = ci.country_id GROUP BY co.country_id, co.country ORDER BY customers DESC LIMIT 10;","SELECT co.country_id, co.country, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id JOIN country co ON co.country_id = ci.country_id GROUP BY co.country_id, co.country ORDER BY customers DESC LIMIT 10;",,,,
+dvdrental,actors with most films,OK,,"SELECT a.actor_id, a.first_name, a.last_name, COUNT(fa.film_id) AS film_count
+FROM actor a
+JOIN film_actor fa ON fa.actor_id = a.actor_id
+GROUP BY a.actor_id, a.first_name, a.last_name
+ORDER BY film_count DESC
+LIMIT 10;","SELECT a.actor_id, a.first_name, a.last_name, COUNT(fa.film_id) AS film_count
+FROM actor a
+JOIN film_actor fa ON fa.actor_id = a.actor_id
+GROUP BY a.actor_id, a.first_name, a.last_name
+ORDER BY film_count DESC
+LIMIT 10;","SELECT a.actor_id, a.first_name, a.last_name, COUNT(fa.film_id) AS film_count FROM actor a JOIN film_actor fa ON fa.actor_id = a.actor_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY film_count DESC LIMIT 10;","SELECT a.actor_id, a.first_name, a.last_name, COUNT(fa.film_id) AS film_count FROM actor a JOIN film_actor fa ON fa.actor_id = a.actor_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY film_count DESC LIMIT 10;","['actor_id', 'first_name', 'last_name', 'film_count']","['actor_id', 'first_name', 'last_name', 'film_count']",10.0,10.0
+dvdrental,films with the highest rental rate,OK,,"SELECT f.film_id, f.title, f.rental_rate 
+FROM film f 
+ORDER BY f.rental_rate DESC, f.film_id ASC 
+LIMIT 10;","SELECT f.film_id, f.title, f.rental_rate 
+FROM film f 
+ORDER BY f.rental_rate DESC, f.film_id ASC 
+LIMIT 10;","SELECT f.film_id, f.title, f.rental_rate FROM film f ORDER BY f.rental_rate DESC, f.film_id ASC LIMIT 10;","SELECT f.film_id, f.title, f.rental_rate FROM film f ORDER BY f.rental_rate DESC, f.film_id ASC LIMIT 10;","['film_id', 'title', 'rental_rate']","['film_id', 'title', 'rental_rate']",10.0,10.0
+dvdrental,ratings distribution (count of films per rating),OK,,"SELECT f.rating, COUNT(*) AS film_count 
+FROM film f 
+GROUP BY f.rating 
+ORDER BY film_count DESC 
+LIMIT 200;","SELECT f.rating, COUNT(*) AS film_count 
+FROM film f 
+GROUP BY f.rating 
+ORDER BY film_count DESC 
+LIMIT 200;","SELECT f.rating, COUNT(*) AS film_count FROM film f GROUP BY f.rating ORDER BY film_count DESC LIMIT 200;","SELECT f.rating, COUNT(*) AS film_count FROM film f GROUP BY f.rating ORDER BY film_count DESC LIMIT 200;","['rating', 'film_count']","['rating', 'film_count']",5.0,5.0
+dvdrental,inventory count per film,OK,,"SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+GROUP BY f.film_id, f.title
+ORDER BY inventory_count DESC
+LIMIT 200;","SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+GROUP BY f.film_id, f.title
+ORDER BY inventory_count DESC
+LIMIT 200;","SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count FROM film f JOIN inventory i ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY inventory_count DESC LIMIT 200;","SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count FROM film f JOIN inventory i ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY inventory_count DESC LIMIT 200;","['film_id', 'title', 'inventory_count']","['film_id', 'title', 'inventory_count']",200.0,200.0
+dvdrental,payment revenue by month,OK,,"SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY month
+ORDER BY month
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY month
+ORDER BY month
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;","['month', 'revenue']","['month', 'revenue']",4.0,4.0
 northwind,top 5 customers by total order value,OK,,"SELECT c.customer_id, c.company_name,
        SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
 FROM customers c
@@ -232,49 +423,121 @@ JOIN order_details od ON od.order_id = o.order_id
 GROUP BY c.customer_id, c.company_name
 ORDER BY total_value DESC
 LIMIT 5;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 5;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 5;","['customer_id', 'company_name', 'total_value']","['customer_id', 'company_name', 'total_value']",5.0,5.0
-northwind,top selling products by quantity,OK,,"SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty
-FROM products p
-JOIN order_details od ON od.product_id = p.product_id
-GROUP BY p.product_id, p.product_name
-ORDER BY total_qty DESC
-LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty
-FROM products p
-JOIN order_details od ON od.product_id = p.product_id
-GROUP BY p.product_id, p.product_name
-ORDER BY total_qty DESC
+northwind,top 10 customers by total order value,OK,,"SELECT c.customer_id, c.company_name,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY c.customer_id, c.company_name
+ORDER BY total_value DESC
+LIMIT 10;","SELECT c.customer_id, c.company_name,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY c.customer_id, c.company_name
+ORDER BY total_value DESC
+LIMIT 10;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 10;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 10;","['customer_id', 'company_name', 'total_value']","['customer_id', 'company_name', 'total_value']",10.0,10.0
+northwind,customers with no orders,OK,,"SELECT c.customer_id, c.company_name 
+FROM customers c 
+LEFT JOIN orders o ON o.customer_id = c.customer_id 
+WHERE o.order_id IS NULL 
+ORDER BY c.customer_id 
+LIMIT 200;","SELECT c.customer_id, c.company_name 
+FROM customers c 
+LEFT JOIN orders o ON o.customer_id = c.customer_id 
+WHERE o.order_id IS NULL 
+ORDER BY c.customer_id 
+LIMIT 200;","SELECT c.customer_id, c.company_name FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL ORDER BY c.customer_id LIMIT 200;","SELECT c.customer_id, c.company_name FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL ORDER BY c.customer_id LIMIT 200;","['customer_id', 'company_name']","['customer_id', 'company_name']",2.0,2.0
+northwind,revenue by country (ship_country),OK,,"SELECT o.ship_country AS country,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY o.ship_country
+ORDER BY revenue DESC
+LIMIT 200;","SELECT o.ship_country AS country,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY o.ship_country
+ORDER BY revenue DESC
+LIMIT 200;","SELECT o.ship_country AS country, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.ship_country ORDER BY revenue DESC LIMIT 200;","SELECT o.ship_country AS country, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.ship_country ORDER BY revenue DESC LIMIT 200;","['country', 'revenue']","['country', 'revenue']",21.0,21.0
+northwind,monthly revenue trend (by order_date),OK,,"SELECT DATE_TRUNC('month', o.order_date) AS month,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+     FROM orders o
+     JOIN order_details od ON od.order_id = o.order_id
+     GROUP BY month
+     ORDER BY month
+     LIMIT 200;","SELECT DATE_TRUNC('month', o.order_date) AS month,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+     FROM orders o
+     JOIN order_details od ON od.order_id = o.order_id
+     GROUP BY month
+     ORDER BY month
+     LIMIT 200;","SELECT DATE_TRUNC('month', o.order_date) AS month, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY month ORDER BY month LIMIT 200;","SELECT DATE_TRUNC('month', o.order_date) AS month, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY month ORDER BY month LIMIT 200;","['month', 'revenue']","['month', 'revenue']",23.0,23.0
+northwind,yearly revenue trend (by order_date),OK,,"SELECT DATE_TRUNC('year', o.order_date) AS year,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+     FROM orders o
+     JOIN order_details od ON od.order_id = o.order_id
+     GROUP BY DATE_TRUNC('year', o.order_date)
+     ORDER BY year
+     LIMIT 200;","SELECT DATE_TRUNC('year', o.order_date) AS year,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+     FROM orders o
+     JOIN order_details od ON od.order_id = o.order_id
+     GROUP BY DATE_TRUNC('year', o.order_date)
+     ORDER BY year
+     LIMIT 200;","SELECT DATE_TRUNC('year', o.order_date) AS year, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY year ORDER BY year LIMIT 200;","SELECT DATE_TRUNC('year', o.order_date) AS year, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY year ORDER BY year LIMIT 200;","['year', 'revenue']","['year', 'revenue']",3.0,3.0
+northwind,top selling products by quantity,OK,,"SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty 
+FROM products p 
+JOIN order_details od ON od.product_id = p.product_id 
+GROUP BY p.product_id, p.product_name 
+ORDER BY total_qty DESC 
+LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty 
+FROM products p 
+JOIN order_details od ON od.product_id = p.product_id 
+GROUP BY p.product_id, p.product_name 
+ORDER BY total_qty DESC 
 LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty FROM products p JOIN order_details od ON od.product_id = p.product_id GROUP BY p.product_id, p.product_name ORDER BY total_qty DESC LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty FROM products p JOIN order_details od ON od.product_id = p.product_id GROUP BY p.product_id, p.product_name ORDER BY total_qty DESC LIMIT 10;","['product_id', 'product_name', 'total_qty']","['product_id', 'product_name', 'total_qty']",10.0,10.0
-northwind,revenue by country,WRONG,,"SELECT SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
-FROM orders o
-JOIN order_details od ON od.order_id = o.order_id
-GROUP BY o.ship_country
+northwind,top selling products by revenue,OK,,"SELECT p.product_id, p.product_name,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM products p
+JOIN order_details od ON od.product_id = p.product_id
+GROUP BY p.product_id, p.product_name
 ORDER BY revenue DESC
-LIMIT 10;","SELECT SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
-FROM orders o
-JOIN order_details od ON od.order_id = o.order_id
-GROUP BY o.ship_country
+LIMIT 10;","SELECT p.product_id, p.product_name,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM products p
+JOIN order_details od ON od.product_id = p.product_id
+GROUP BY p.product_id, p.product_name
 ORDER BY revenue DESC
-LIMIT 10;","SELECT o.ship_country AS country, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.ship_country ORDER BY revenue DESC;","SELECT o.ship_country AS country, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.ship_country ORDER BY revenue DESC
-LIMIT 200;",['revenue'],"['country', 'revenue']",10.0,21.0
-northwind,orders per employee,OK,,"SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count
-FROM employees e
-JOIN orders o ON o.employee_id = e.employee_id
-GROUP BY e.employee_id, e.first_name, e.last_name
-ORDER BY orders_count DESC;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count
-FROM employees e
-JOIN orders o ON o.employee_id = e.employee_id
-GROUP BY e.employee_id, e.first_name, e.last_name
-ORDER BY orders_count DESC
-LIMIT 200;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC
-LIMIT 200;","['employee_id', 'first_name', 'last_name', 'orders_count']","['employee_id', 'first_name', 'last_name', 'orders_count']",9.0,9.0
-northwind,top 5 suppliers by sales,WRONG,,"SELECT s.supplier_id, s.company_name,
-       SUM(od.unit_price * od.quantity) AS sales
+LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM products p JOIN order_details od ON od.product_id = p.product_id GROUP BY p.product_id, p.product_name ORDER BY revenue DESC LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM products p JOIN order_details od ON od.product_id = p.product_id GROUP BY p.product_id, p.product_name ORDER BY revenue DESC LIMIT 10;","['product_id', 'product_name', 'revenue']","['product_id', 'product_name', 'revenue']",10.0,10.0
+northwind,top categories by sales,OK,,"SELECT cat.category_id, cat.category_name,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+FROM products p
+JOIN order_details od ON od.product_id = p.product_id
+JOIN orders o ON od.order_id = o.order_id
+JOIN categories cat ON p.category_id = cat.category_id
+GROUP BY cat.category_id, cat.category_name
+ORDER BY sales DESC
+LIMIT 10;","SELECT cat.category_id, cat.category_name,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+FROM products p
+JOIN order_details od ON od.product_id = p.product_id
+JOIN orders o ON od.order_id = o.order_id
+JOIN categories cat ON p.category_id = cat.category_id
+GROUP BY cat.category_id, cat.category_name
+ORDER BY sales DESC
+LIMIT 10;","SELECT cat.category_id, cat.category_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM categories cat JOIN products p ON p.category_id = cat.category_id JOIN order_details od ON od.product_id = p.product_id GROUP BY cat.category_id, cat.category_name ORDER BY sales DESC LIMIT 10;","SELECT cat.category_id, cat.category_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM categories cat JOIN products p ON p.category_id = cat.category_id JOIN order_details od ON od.product_id = p.product_id GROUP BY cat.category_id, cat.category_name ORDER BY sales DESC LIMIT 10;","['category_id', 'category_name', 'sales']","['category_id', 'category_name', 'sales']",8.0,8.0
+northwind,top 5 suppliers by sales,OK,,"SELECT s.supplier_id, s.company_name,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
 FROM suppliers s
 JOIN products p ON p.supplier_id = s.supplier_id
 JOIN order_details od ON od.product_id = p.product_id
 GROUP BY s.supplier_id, s.company_name
 ORDER BY sales DESC
 LIMIT 5;","SELECT s.supplier_id, s.company_name,
-       SUM(od.unit_price * od.quantity) AS sales
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
 FROM suppliers s
 JOIN products p ON p.supplier_id = s.supplier_id
 JOIN order_details od ON od.product_id = p.product_id
@@ -282,70 +545,105 @@ GROUP BY s.supplier_id, s.company_name
 ORDER BY sales DESC
 LIMIT 5;","SELECT s.supplier_id, s.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM suppliers s JOIN products p ON p.supplier_id = s.supplier_id JOIN order_details od ON od.product_id = p.product_id GROUP BY s.supplier_id, s.company_name ORDER BY sales DESC LIMIT 5;","SELECT s.supplier_id, s.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM suppliers s JOIN products p ON p.supplier_id = s.supplier_id JOIN order_details od ON od.product_id = p.product_id GROUP BY s.supplier_id, s.company_name ORDER BY sales DESC LIMIT 5;","['supplier_id', 'company_name', 'sales']","['supplier_id', 'company_name', 'sales']",5.0,5.0
 northwind,most used shipper,OK,,"SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped
-FROM public.orders o
-JOIN public.shippers sh ON o.ship_via = sh.shipper_id
+FROM shippers sh
+JOIN orders o ON o.ship_via = sh.shipper_id
 GROUP BY sh.shipper_id, sh.company_name
 ORDER BY orders_shipped DESC
 LIMIT 1;","SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped
-FROM public.orders o
-JOIN public.shippers sh ON o.ship_via = sh.shipper_id
+FROM shippers sh
+JOIN orders o ON o.ship_via = sh.shipper_id
 GROUP BY sh.shipper_id, sh.company_name
 ORDER BY orders_shipped DESC
 LIMIT 1;","SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped FROM shippers sh JOIN orders o ON o.ship_via = sh.shipper_id GROUP BY sh.shipper_id, sh.company_name ORDER BY orders_shipped DESC LIMIT 1;","SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped FROM shippers sh JOIN orders o ON o.ship_via = sh.shipper_id GROUP BY sh.shipper_id, sh.company_name ORDER BY orders_shipped DESC LIMIT 1;","['shipper_id', 'company_name', 'orders_shipped']","['shipper_id', 'company_name', 'orders_shipped']",1.0,1.0
-northwind,monthly revenue trend,OK,,"SELECT DATE_TRUNC('month', o.order_date) AS month,
-       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+northwind,orders per employee,OK,,"SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count 
+FROM employees e 
+JOIN orders o ON o.employee_id = e.employee_id 
+GROUP BY e.employee_id, e.first_name, e.last_name 
+ORDER BY orders_count DESC 
+LIMIT 200;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count 
+FROM employees e 
+JOIN orders o ON o.employee_id = e.employee_id 
+GROUP BY e.employee_id, e.first_name, e.last_name 
+ORDER BY orders_count DESC 
+LIMIT 200;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC LIMIT 200;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC LIMIT 200;","['employee_id', 'first_name', 'last_name', 'orders_count']","['employee_id', 'first_name', 'last_name', 'orders_count']",9.0,9.0
+northwind,top 5 employees by order count,OK,,"SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count
+FROM employees e
+JOIN orders o ON o.employee_id = e.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY orders_count DESC
+LIMIT 5;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count
+FROM employees e
+JOIN orders o ON o.employee_id = e.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY orders_count DESC
+LIMIT 5;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC LIMIT 5;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC LIMIT 5;","['employee_id', 'first_name', 'last_name', 'orders_count']","['employee_id', 'first_name', 'last_name', 'orders_count']",5.0,5.0
+northwind,average order value,WRONG,,"SELECT AVG(od.unit_price * od.quantity * (1 - od.discount)) AS avg_order_value
 FROM orders o
 JOIN order_details od ON od.order_id = o.order_id
-GROUP BY DATE_TRUNC('month', o.order_date)
-ORDER BY month;","SELECT DATE_TRUNC('month', o.order_date) AS month,
-       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+GROUP BY o.order_id
+ORDER BY avg_order_value DESC
+LIMIT 200;","SELECT AVG(od.unit_price * od.quantity * (1 - od.discount)) AS avg_order_value
 FROM orders o
 JOIN order_details od ON od.order_id = o.order_id
-GROUP BY DATE_TRUNC('month', o.order_date)
-ORDER BY month
-LIMIT 200;","SELECT DATE_TRUNC('month', o.order_date) AS month, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY month ORDER BY month;","SELECT DATE_TRUNC('month', o.order_date) AS month, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY month ORDER BY month
-LIMIT 200;","['month', 'revenue']","['month', 'revenue']",23.0,23.0
-northwind,customers with no orders,OK,,"SELECT c.customer_id, c.company_name
+GROUP BY o.order_id
+ORDER BY avg_order_value DESC
+LIMIT 200;","SELECT AVG(order_total) AS avg_order_value FROM (SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id) t LIMIT 200;","SELECT AVG(order_total) AS avg_order_value FROM (SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id) t LIMIT 200;",['avg_order_value'],['avg_order_value'],200.0,1.0
+northwind,top 10 orders by total value,OK,,"SELECT o.order_id, 
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY o.order_id
+ORDER BY order_total DESC
+LIMIT 10;","SELECT o.order_id, 
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY o.order_id
+ORDER BY order_total DESC
+LIMIT 10;","SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id ORDER BY order_total DESC LIMIT 10;","SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id ORDER BY order_total DESC LIMIT 10;","['order_id', 'order_total']","['order_id', 'order_total']",10.0,10.0
+northwind,top 5 customers by number of orders,OK,,"SELECT c.customer_id, c.company_name,
+       COUNT(o.order_id) AS orders_count
 FROM customers c
-LEFT JOIN orders o ON o.customer_id = c.customer_id
-WHERE o.order_id IS NULL
+JOIN orders o ON o.customer_id = c.customer_id
+GROUP BY c.customer_id, c.company_name
+ORDER BY orders_count DESC
+LIMIT 5;","SELECT c.customer_id, c.company_name,
+       COUNT(o.order_id) AS orders_count
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+GROUP BY c.customer_id, c.company_name
+ORDER BY orders_count DESC
+LIMIT 5;","SELECT c.customer_id, c.company_name, COUNT(o.order_id) AS orders_count FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id, c.company_name ORDER BY orders_count DESC LIMIT 5;","SELECT c.customer_id, c.company_name, COUNT(o.order_id) AS orders_count FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id, c.company_name ORDER BY orders_count DESC LIMIT 5;","['customer_id', 'company_name', 'orders_count']","['customer_id', 'company_name', 'orders_count']",5.0,5.0
+northwind,customers who placed exactly 1 order,OK,,"SELECT c.customer_id, c.company_name
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+GROUP BY c.customer_id, c.company_name
+HAVING COUNT(o.order_id) = 1
+ORDER BY c.customer_id
 LIMIT 200;","SELECT c.customer_id, c.company_name
 FROM customers c
-LEFT JOIN orders o ON o.customer_id = c.customer_id
-WHERE o.order_id IS NULL
-LIMIT 200;","SELECT c.customer_id, c.company_name FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL ORDER BY c.customer_id LIMIT 200;","SELECT c.customer_id, c.company_name FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL ORDER BY c.customer_id LIMIT 200;","['customer_id', 'company_name']","['customer_id', 'company_name']",2.0,2.0
-northwind,top categories by sales,OK,,"SELECT cat.category_name, 
-       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+JOIN orders o ON o.customer_id = c.customer_id
+GROUP BY c.customer_id, c.company_name
+HAVING COUNT(o.order_id) = 1
+ORDER BY c.customer_id
+LIMIT 200;","SELECT c.customer_id, c.company_name FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id, c.company_name HAVING COUNT(o.order_id) = 1 ORDER BY c.customer_id LIMIT 200;","SELECT c.customer_id, c.company_name FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id, c.company_name HAVING COUNT(o.order_id) = 1 ORDER BY c.customer_id LIMIT 200;","['customer_id', 'company_name']","['customer_id', 'company_name']",1.0,1.0
+northwind,products never ordered,OK,,"SELECT p.product_id, p.product_name
 FROM products p
-JOIN order_details od ON od.product_id = p.product_id
-JOIN categories cat ON p.category_id = cat.category_id
-GROUP BY cat.category_name
-ORDER BY sales DESC
-LIMIT 10;","SELECT cat.category_name, 
-       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+LEFT JOIN order_details od ON od.product_id = p.product_id
+WHERE od.order_id IS NULL
+ORDER BY p.product_id
+LIMIT 200;","SELECT p.product_id, p.product_name
 FROM products p
-JOIN order_details od ON od.product_id = p.product_id
-JOIN categories cat ON p.category_id = cat.category_id
-GROUP BY cat.category_name
-ORDER BY sales DESC
-LIMIT 10;","SELECT cat.category_id, cat.category_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM categories cat JOIN products p ON p.category_id = cat.category_id JOIN order_details od ON od.product_id = p.product_id GROUP BY cat.category_id, cat.category_name ORDER BY sales DESC LIMIT 10;","SELECT cat.category_id, cat.category_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM categories cat JOIN products p ON p.category_id = cat.category_id JOIN order_details od ON od.product_id = p.product_id GROUP BY cat.category_id, cat.category_name ORDER BY sales DESC LIMIT 10;","['category_name', 'sales']","['category_id', 'category_name', 'sales']",8.0,8.0
-northwind,average order value,FAIL_EXEC_PRED,"missing FROM-clause entry for table ""od""
-LINE 1: SELECT AVG(od.unit_price * od.quantity * (1 - od.discount)) ...
-                   ^
-","SELECT AVG(od.unit_price * od.quantity * (1 - od.discount)) AS avg_order_value
-FROM (
-  SELECT o.order_id,
-         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total
-  FROM orders o
-  JOIN order_details od ON od.order_id = o.order_id
-  GROUP BY o.order_id
-) t;","SELECT AVG(od.unit_price * od.quantity * (1 - od.discount)) AS avg_order_value
-FROM (
-  SELECT o.order_id,
-         SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total
-  FROM orders o
-  JOIN order_details od ON od.order_id = o.order_id
-  GROUP BY o.order_id
-) t
-LIMIT 200;","SELECT AVG(order_total) AS avg_order_value FROM (SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id) t;","SELECT AVG(order_total) AS avg_order_value FROM (SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id) t
-LIMIT 200;",,,,
+LEFT JOIN order_details od ON od.product_id = p.product_id
+WHERE od.order_id IS NULL
+ORDER BY p.product_id
+LIMIT 200;","SELECT p.product_id, p.product_name FROM products p LEFT JOIN order_details od ON od.product_id = p.product_id WHERE od.order_id IS NULL ORDER BY p.product_id LIMIT 200;","SELECT p.product_id, p.product_name FROM products p LEFT JOIN order_details od ON od.product_id = p.product_id WHERE od.order_id IS NULL ORDER BY p.product_id LIMIT 200;","['product_id', 'product_name']","['product_id', 'product_name']",0.0,0.0
+northwind,products that are discontinued,OK,,"SELECT p.product_id, p.product_name
+FROM products p
+WHERE p.discontinued = 1
+ORDER BY p.product_id
+LIMIT 200;","SELECT p.product_id, p.product_name
+FROM products p
+WHERE p.discontinued = 1
+ORDER BY p.product_id
+LIMIT 200;","SELECT p.product_id, p.product_name FROM products p WHERE p.discontinued = 1 ORDER BY p.product_id LIMIT 200;","SELECT p.product_id, p.product_name FROM products p WHERE p.discontinued = 1 ORDER BY p.product_id LIMIT 200;","['product_id', 'product_name']","['product_id', 'product_name']",10.0,10.0

@@ -11,23 +11,20 @@ build/
 .venv/
 venv/
 
-# Mac
+# macOS
 .DS_Store
 
-# Streamlit
-.streamlit/
-
-# HuggingFace / transformers / sentence-transformers cache
+# caches
 .hf_cache/
 .cache/
 **/.cache/
 
-# Chroma persistent vector DB (optional: you can keep schema JSONs but not chroma sqlite)
+# Chroma persistent DB (do NOT commit)
 data/chroma/
 **/chroma.sqlite3
 
-# Logs
-*.log
+# Streamlit
+.streamlit/
 
-# Evaluation outputs (optional to ignore; keep if you want)
-eval/report.csv
+# logs
+*.log

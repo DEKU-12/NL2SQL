@@ -18,7 +18,7 @@ DOMAINS = ["chinook", "dvdrental", "northwind"]
 def get_settings():
     return {
         "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434"),
-        "ollama_model": os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
+        "ollama_model": os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b"),
         "persist_dir": os.getenv("CHROMA_DIR", "data/chroma"),
         "limit": int(os.getenv("SQL_LIMIT", "200")),
     }
@@ -40,7 +40,7 @@ def main():
     with st.sidebar:
         st.header("Settings")
         domain = st.selectbox("Domain (DB)", DOMAINS, index=0)
-        k = st.slider("Top-K schema chunks", 3, 15, 8)
+        k = st.slider("Top-K schema chunks", 3, 20, 15)
 
         st.text_input("Ollama URL", value=cfg["ollama_url"], key="ollama_url")
         st.text_input("Ollama Model", value=cfg["ollama_model"], key="ollama_model")

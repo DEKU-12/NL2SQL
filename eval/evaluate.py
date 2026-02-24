@@ -19,7 +19,7 @@ GOLD_PATH = Path("eval/gold.jsonl")
 # Config
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "llama3.2:3b"
-TOP_K = 12
+TOP_K = 15
 LIMIT = 200
 ROUND_DECIMALS = 2
 

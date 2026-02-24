@@ -80,7 +80,7 @@ def main():
     ap.add_argument("--dialect", type=str, default="PostgreSQL")
     ap.add_argument("--limit", type=int, default=200)
     ap.add_argument("--persist_dir", type=str, default="data/chroma")
-    ap.add_argument("--model", type=str, default=os.getenv("OLLAMA_MODEL", "llama3.2:3b"))
+    ap.add_argument("--model", type=str, default=os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b"))
     ap.add_argument("--base_url", type=str, default=os.getenv("OLLAMA_URL", "http://localhost:11434"))
     ap.add_argument("--retries", type=int, default=2, help="how many self-correction retries on SQL execution error")
     ap.add_argument("--show_context", action="store_true")
