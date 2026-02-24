@@ -67,7 +67,28 @@ An end-to-end **Natural Language → SQL** system that works across **multiple d
 → **Postgres execution**  
 → **Results + CSV download**
 
----
+## Results (Execution-Based Evaluation)
+
+Evaluation is done by generating SQL for each question, enforcing guardrails (SELECT/WITH-only + LIMIT),
+executing **both predicted SQL and gold SQL** on PostgreSQL, and comparing the returned result tables.
+
+**Benchmark:** 59 gold queries across 3 domains (Chinook, DVDRental, Northwind)  
+**Model:** `qwen2.5-coder:7b` (Ollama)  
+**Retrieval:** Schema RAG (Chroma) + relationship join-map chunk, Top-K = 15  
+**Safety:** Guardrails enabled (SELECT-only + LIMIT)
+
+### Summary Metrics
+- **Total cases:** 59  
+- **Guardrail pass (pred):** 59 / 59 (**100%**)  
+- **Guardrail pass (gold):** 59 / 59 (**100%**)  
+- **Pred SQL executed:** 57 / 59 (**96.61%**)  
+- **Gold SQL executed:** 57 / 59 (**96.61%**)  
+- **Executed BOTH pred + gold:** 57 / 59 (**96.61%**)  
+- **Execution accuracy (overall):** 50 / 59 (**84.75%**)  
+- **Accuracy on executed-both:** 50 / 57 (**87.72%**)  
+
+Detailed per-question results are saved to: `eval/report.csv`.
+
 
 
 
