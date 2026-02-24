@@ -1,0 +1,105 @@
+Q: average order value
+SQL: SELECT AVG(order_total) AS avg_order_value
+     FROM (
+       SELECT o.order_id,
+              SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total
+       FROM orders o
+       JOIN order_details od ON od.order_id = o.order_id
+       GROUP BY o.order_id
+     ) t;
+
+Q: monthly revenue trend
+SQL: SELECT DATE_TRUNC('month', o.order_date) AS month,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+     FROM orders o
+     JOIN order_details od ON od.order_id = o.order_id
+     GROUP BY month
+     ORDER BY month;
+
+Q: orders per employee
+SQL: SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count
+     FROM employees e
+     JOIN orders o ON o.employee_id = e.employee_id
+     GROUP BY e.employee_id, e.first_name, e.last_name
+     ORDER BY orders_count DESC;
+
+Q: top categories by sales
+SQL: SELECT cat.category_id, cat.category_name,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+     FROM categories cat
+     JOIN products p ON p.category_id = cat.category_id
+     JOIN order_details od ON od.product_id = p.product_id
+     GROUP BY cat.category_id, cat.category_name
+     ORDER BY sales DESC
+     LIMIT 10;
+
+Q: most used shipper
+SQL: SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped
+     FROM shippers sh
+     JOIN orders o ON o.ship_via = sh.shipper_id
+     GROUP BY sh.shipper_id, sh.company_name
+     ORDER BY orders_shipped DESC
+     LIMIT 1;
+
+Q: top 5 suppliers by sales
+SQL: SELECT s.supplier_id, s.company_name,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+     FROM suppliers s
+     JOIN products p ON p.supplier_id = s.supplier_id
+     JOIN order_details od ON od.product_id = p.product_id
+     GROUP BY s.supplier_id, s.company_name
+     ORDER BY sales DESC
+     LIMIT 5;
+
+Q: top selling products by quantity
+SQL: SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty
+     FROM products p
+     JOIN order_details od ON od.product_id = p.product_id
+     GROUP BY p.product_id, p.product_name
+     ORDER BY total_qty DESC
+     LIMIT 10;
+
+Q: revenue by country
+SQL: SELECT o.ship_country AS country,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+     FROM orders o
+     JOIN order_details od ON od.order_id = o.order_id
+     GROUP BY o.ship_country
+     ORDER BY revenue DESC;
+
+Q: customers with no orders
+SQL: SELECT c.customer_id, c.company_name
+     FROM customers c
+     LEFT JOIN orders o ON o.customer_id = c.customer_id
+     WHERE o.order_id IS NULL
+     LIMIT 200;
+
+Q: top 5 customers by total order value
+SQL: SELECT c.customer_id, c.company_name,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+     FROM customers c
+     JOIN orders o ON o.customer_id = c.customer_id
+     JOIN order_details od ON od.order_id = o.order_id
+     GROUP BY c.customer_id, c.company_name
+     ORDER BY total_value DESC
+     LIMIT 5;
+
+Q: average order value
+SQL: SELECT AVG(order_total) AS avg_order_value
+     FROM (
+       SELECT o.order_id,
+              SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total
+       FROM orders o
+       JOIN order_details od ON od.order_id = o.order_id
+       GROUP BY o.order_id
+     ) t;
+
+Q: top 5 suppliers by sales
+SQL: SELECT s.supplier_id, s.company_name,
+            SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+     FROM suppliers s
+     JOIN products p ON p.supplier_id = s.supplier_id
+     JOIN order_details od ON od.product_id = p.product_id
+     GROUP BY s.supplier_id, s.company_name
+     ORDER BY sales DESC
+     LIMIT 5;

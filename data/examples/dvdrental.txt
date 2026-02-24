@@ -1,0 +1,80 @@
+Q: average rental duration in days
+SQL: SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days
+     FROM rental r
+     WHERE r.return_date IS NOT NULL;
+
+Q: top 10 cities by customers
+SQL: SELECT ci.city, COUNT(c.customer_id) AS customers
+     FROM customer c
+     JOIN address a ON a.address_id = c.address_id
+     JOIN city ci ON ci.city_id = a.city_id
+     GROUP BY ci.city_id, ci.city
+     ORDER BY customers DESC
+     LIMIT 10;
+
+Q: top 5 actors by number of films
+SQL: SELECT a.first_name, a.last_name, COUNT(fa.film_id) AS film_count
+     FROM actor a
+     JOIN film_actor fa ON fa.actor_id = a.actor_id
+     GROUP BY a.actor_id, a.first_name, a.last_name
+     ORDER BY film_count DESC
+     LIMIT 5;
+
+Q: top 5 categories by rentals
+SQL: SELECT c.name AS category, COUNT(*) AS rental_count
+     FROM rental r
+     JOIN inventory i ON i.inventory_id = r.inventory_id
+     JOIN film f ON f.film_id = i.film_id
+     JOIN film_category fc ON fc.film_id = f.film_id
+     JOIN category c ON c.category_id = fc.category_id
+     GROUP BY c.category_id, c.name
+     ORDER BY rental_count DESC
+     LIMIT 5;
+
+Q: customers who rented more than 10 times
+SQL: SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals
+     FROM customer c
+     JOIN rental r ON r.customer_id = c.customer_id
+     GROUP BY c.customer_id, c.first_name, c.last_name
+     HAVING COUNT(r.rental_id) > 10
+     ORDER BY rentals DESC;
+
+Q: stores with highest revenue
+SQL: SELECT s.store_id, SUM(p.amount) AS revenue
+     FROM store s
+     JOIN staff st ON st.store_id = s.store_id
+     JOIN payment p ON p.staff_id = st.staff_id
+     GROUP BY s.store_id
+     ORDER BY revenue DESC;
+
+Q: films never rented
+SQL: SELECT f.film_id, f.title
+     FROM film f
+     LEFT JOIN inventory i ON i.film_id = f.film_id
+     LEFT JOIN rental r ON r.inventory_id = i.inventory_id
+     WHERE r.rental_id IS NULL
+     ORDER BY f.film_id
+     LIMIT 200;
+
+Q: most rented film titles
+SQL: SELECT f.title, COUNT(*) AS rental_count
+     FROM rental r
+     JOIN inventory i ON i.inventory_id = r.inventory_id
+     JOIN film f ON f.film_id = i.film_id
+     GROUP BY f.film_id, f.title
+     ORDER BY rental_count DESC
+     LIMIT 10;
+
+Q: top 5 customers by total payments
+SQL: SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
+     FROM customer c
+     JOIN payment p ON p.customer_id = c.customer_id
+     GROUP BY c.customer_id, c.first_name, c.last_name
+     ORDER BY total_payments DESC
+     LIMIT 5;
+
+Q: total revenue by month
+SQL: SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+     FROM payment p
+     GROUP BY month
+     ORDER BY month;

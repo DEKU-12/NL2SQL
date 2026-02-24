@@ -2,18 +2,32 @@
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
 
 # venv
 .venv/
 venv/
 
-# HF / ML caches
+# Mac
+.DS_Store
+
+# Streamlit
+.streamlit/
+
+# HuggingFace / transformers / sentence-transformers cache
 .hf_cache/
 .cache/
 **/.cache/
-huggingface/
-HF_HOME/
 
-# env secrets
-.env
-.env
+# Chroma persistent vector DB (optional: you can keep schema JSONs but not chroma sqlite)
+data/chroma/
+**/chroma.sqlite3
+
+# Logs
+*.log
+
+# Evaluation outputs (optional to ignore; keep if you want)
+eval/report.csv

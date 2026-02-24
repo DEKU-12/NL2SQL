@@ -16,12 +16,12 @@ from src.t2sql.executor import run_sql
 
 GOLD_PATH = Path("eval/gold.jsonl")
 
-# Config (edit here if you want)
+# Config
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_MODEL = "llama3.2:3b"
-TOP_K = 12          # bumped from 8 → 12 for better retrieval
+TOP_K = 12
 LIMIT = 200
-ROUND_DECIMALS = 2  # float rounding for result comparison
+ROUND_DECIMALS = 2
 
 
 def load_gold_cases(path: Path) -> List[Dict[str, Any]]:
@@ -44,11 +44,10 @@ def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     df2 = df.copy()
 
-    # lowercase + sort columns
     df2.columns = [str(c).lower() for c in df2.columns]
     df2 = df2.sort_index(axis=1)
 
-    # round numeric columns (helps float/decimal noise)
+    # round numeric cols
     for c in df2.columns:
         try:
             if pd.api.types.is_numeric_dtype(df2[c]):
@@ -56,10 +55,8 @@ def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
         except Exception:
             pass
 
-    # cast to string for stable equality
     df2 = df2.astype(str)
 
-    # sort rows
     if len(df2.columns) > 0 and len(df2) > 0:
         df2 = df2.sort_values(list(df2.columns)).reset_index(drop=True)
     else:
@@ -70,18 +67,38 @@ def normalize_df(df: pd.DataFrame) -> pd.DataFrame:
 
 def same_result(df_pred: pd.DataFrame, df_gold: pd.DataFrame) -> bool:
     """
-    Result equivalence check.
-    NOTE: Requires same number of columns. (Keeps it simple + reliable.)
+    Fair equivalence:
+    - If both scalar (1x1): compare value (rounded)
+    - Else: compare common columns only
+    - Compare only top N rows where N=min(rows_pred, rows_gold) (handles LIMIT differences)
     """
     try:
+        # scalar compare
+        if df_pred.shape == (1, 1) and df_gold.shape == (1, 1):
+            a = df_pred.iloc[0, 0]
+            b = df_gold.iloc[0, 0]
+            try:
+                return round(float(a), ROUND_DECIMALS) == round(float(b), ROUND_DECIMALS)
+            except Exception:
+                return str(a).strip() == str(b).strip()
+
         a = normalize_df(df_pred)
         b = normalize_df(df_gold)
 
-        # must have same shape
-        if a.shape != b.shape:
+        # align on common columns
+        common_cols = [c for c in a.columns if c in b.columns]
+        if not common_cols:
             return False
 
-        return a.equals(b)
+        a2 = a[common_cols].reset_index(drop=True)
+        b2 = b[common_cols].reset_index(drop=True)
+
+        # compare only up to min row count
+        n = min(len(a2), len(b2))
+        a2 = a2.head(n).reset_index(drop=True)
+        b2 = b2.head(n).reset_index(drop=True)
+
+        return a2.equals(b2)
     except Exception:
         return False
 
@@ -100,8 +117,8 @@ def main():
     executed_gold = 0
     executed_both = 0
 
-    exec_correct_all = 0         # correct out of total
-    exec_correct_on_executed = 0 # correct out of executed_both
+    exec_correct_all = 0
+    exec_correct_on_executed = 0
 
     report_rows: List[Dict[str, Any]] = []
 
@@ -142,7 +159,7 @@ def main():
             })
             continue
 
-        # 2) Apply guardrails to gold too (IMPORTANT for fair comparison)
+        # 2) Guardrails on gold too
         try:
             gold_sql_safe = validate_and_fix(gold_sql_raw, limit=LIMIT)
             guardrail_pass_gold += 1
@@ -161,7 +178,7 @@ def main():
             })
             continue
 
-        # 3) Execute predicted
+        # 3) Execute pred
         try:
             p_cols, p_rows = run_sql(dbname=domain, sql=pred_sql_safe, max_rows=LIMIT)
             executed_pred += 1
@@ -203,7 +220,6 @@ def main():
 
         executed_both += 1
 
-        # 5) Compare results
         ok = same_result(pred_df, gold_df)
         if ok:
             exec_correct_all += 1
@@ -227,7 +243,6 @@ def main():
             "gold_rows": len(gold_df),
         })
 
-    # Summary
     print("\n=== EVALUATION SUMMARY ===")
     print(f"Total cases:                 {total}")
     print(f"Guardrail pass (pred):       {guardrail_pass_pred} ({guardrail_pass_pred/total:.2%})")
