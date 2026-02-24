@@ -30,3 +30,8 @@ data/chroma/
 *.log
 .env
 .idea/
+
+# Chroma vector DB (generated)
+data/chroma/
+**/chroma.sqlite3
+
