@@ -8,19 +8,60 @@ import streamlit as st
 from src.rag.retrieve import retrieve_schema_chunks
 from src.t2sql.prompt_builder import build_prompt
 from src.t2sql.guardrails import validate_and_fix
-from src.t2sql.generate import call_ollama, extract_sql
+from src.t2sql.generate import call_ollama, call_openai, call_groq, call_hf_inference, extract_sql
 from src.t2sql.executor import run_sql
 
 DOMAINS = ["chinook", "dvdrental", "northwind"]
 
 
+# ── HF Spaces: auto-build chroma index if missing ────────────────────────────
+def _ensure_chroma_index() -> None:
+    """On HF Spaces (USE_SQLITE=true), build the chroma index on first boot."""
+    chroma_dir = os.getenv("CHROMA_DIR", "data/chroma")
+    if os.path.isdir(chroma_dir) and any(os.scandir(chroma_dir)):
+        return  # already built
+    try:
+        import subprocess, sys
+        with st.spinner("⏳ Building schema index (first boot — takes ~60s)..."):
+            result = subprocess.run(
+                [sys.executable, "scripts/02_build_index.py", "--all"],
+                capture_output=True, text=True, timeout=300,
+            )
+        if result.returncode != 0:
+            st.error(f"Index build failed:\n{result.stderr[:500]}")
+    except Exception as e:
+        st.error(f"Index build error: {e}")
+
+
+# ── Mode detection ────────────────────────────────────────────────────────────
+# USE_SQLITE=true  → SQLite mode (HF Spaces / no Postgres)
+# Backend priority: Groq (free) → OpenAI → Ollama (local)
+_USE_SQLITE = os.getenv("USE_SQLITE", "").lower() in ("1", "true", "yes")
+_HF_MODE = _USE_SQLITE
+
+def _default_backend() -> str:
+    if os.getenv("GROQ_API_KEY"):
+        return "groq"
+    if os.getenv("HF_TOKEN"):
+        return "hf"
+    if os.getenv("OPENAI_API_KEY"):
+        return "openai"
+    return "ollama"
+
+
 @st.cache_resource
 def get_settings():
     return {
-        "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434"),
-        "ollama_model": os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b"),
-        "persist_dir": os.getenv("CHROMA_DIR", "data/chroma"),
-        "limit": int(os.getenv("SQL_LIMIT", "200")),
+        "ollama_url":   os.getenv("OLLAMA_URL",   "http://localhost:11434"),
+        "ollama_model": os.getenv("OLLAMA_MODEL",  "qwen2.5-coder:7b"),
+        "openai_model": os.getenv("OPENAI_MODEL",  "gpt-4o-mini"),
+        "groq_model":   os.getenv("GROQ_MODEL",    "llama-3.3-70b-versatile"),
+        "hf_model":     os.getenv("HF_MODEL",      "Qwen/Qwen2.5-Coder-7B-Instruct"),
+        "persist_dir":  os.getenv("CHROMA_DIR",    "data/chroma"),
+        "limit":        int(os.getenv("SQL_MAX_ROWS", "200")),
+        "openai_key":   os.getenv("OPENAI_API_KEY", ""),
+        "groq_key":     os.getenv("GROQ_API_KEY", ""),
+        "hf_token":     os.getenv("HF_TOKEN", ""),
     }
 
 
@@ -29,53 +70,149 @@ def cached_retrieve(domain: str, question: str, k: int, persist_dir: str):
     return retrieve_schema_chunks(domain=domain, question=question, k=k, persist_dir=persist_dir)
 
 
+def llm_generate(prompt: str, cfg: dict, sidebar_openai_key: str, sidebar_groq_key: str, sidebar_hf_token: str) -> str:
+    """Route to HF / Groq / OpenAI / Ollama based on sidebar selection."""
+    backend = st.session_state.get("backend", _default_backend())
+    if backend == "hf":
+        api_key = sidebar_hf_token or cfg["hf_token"]
+        return call_hf_inference(prompt, model=cfg["hf_model"], api_key=api_key)
+    elif backend == "groq":
+        api_key = sidebar_groq_key or cfg["groq_key"]
+        return call_groq(prompt, model=cfg["groq_model"], api_key=api_key)
+    elif backend == "openai":
+        api_key = sidebar_openai_key or cfg["openai_key"]
+        return call_openai(prompt, model=cfg["openai_model"], api_key=api_key)
+    else:
+        return call_ollama(prompt, model=st.session_state["ollama_model"],
+                           base_url=st.session_state["ollama_url"])
+
+
 def main():
-    st.set_page_config(page_title="Multi-Domain NL→SQL Copilot", layout="wide")
+    st.set_page_config(page_title="NL→SQL Copilot", layout="wide", page_icon="🧠")
+
+    if _HF_MODE:
+        _ensure_chroma_index()
 
     cfg = get_settings()
 
-    st.title("🧠 Multi-Domain NL→SQL Copilot (RAG + Ollama + Postgres)")
-    st.caption("Retrieve schema → Generate SQL → Run → Results + CSV")
+    st.title("🧠 Multi-Domain NL→SQL Copilot")
+    if _HF_MODE:
+        st.caption("RAG + OpenAI + SQLite — running on Hugging Face Spaces")
+        st.info(
+            "**Demo mode:** Using bundled SQLite databases (Chinook & Northwind). "
+            "Enter your OpenAI API key in the sidebar to generate SQL.",
+            icon="ℹ️",
+        )
+    else:
+        st.caption("RAG + LLM + PostgreSQL — retrieve schema → generate SQL → run → results")
 
+    # ── Sidebar ────────────────────────────────────────────────────────────────
     with st.sidebar:
-        st.header("Settings")
-        domain = st.selectbox("Domain (DB)", DOMAINS, index=0)
+        st.header("⚙️ Settings")
+
+        # Domain selector — hide dvdrental in SQLite mode (not bundled)
+        available_domains = ["chinook", "northwind"] if _HF_MODE else DOMAINS
+        domain = st.selectbox("Domain (database)", available_domains, index=0)
+
         k = st.slider("Top-K schema chunks", 3, 20, 15)
 
-        st.text_input("Ollama URL", value=cfg["ollama_url"], key="ollama_url")
-        st.text_input("Ollama Model", value=cfg["ollama_model"], key="ollama_model")
-        st.text_input("Chroma persist dir", value=cfg["persist_dir"], key="persist_dir")
+        st.divider()
+        st.subheader("🤖 LLM Backend")
 
-        limit = st.number_input(
-            "Row LIMIT", min_value=50, max_value=1000, value=cfg["limit"], step=50
+        backend_options = ["hf", "groq", "openai", "ollama"] if not _HF_MODE else ["hf", "groq", "openai"]
+        default_idx = backend_options.index(_default_backend()) if _default_backend() in backend_options else 0
+        backend = st.selectbox(
+            "Backend",
+            backend_options,
+            index=default_idx,
+            key="backend",
+            help="HF = qwen2.5-coder:7b (same as benchmark). Groq = free & fast. OpenAI = GPT-4o-mini. Ollama = local.",
         )
 
+        groq_key_input = ""
+        openai_key_input = ""
+        sidebar_hf_token = ""
+
+        if backend == "hf":
+            sidebar_hf_token = st.text_input(
+                "HF Token",
+                type="password",
+                value="",
+                placeholder="hf_..." if not cfg["hf_token"] else "set via env ✓",
+                help="Free at huggingface.co/settings/tokens (Read token is enough).",
+            )
+            st.caption(f"Model: `{cfg['hf_model']}`")
+            st.caption("⭐ Same model as the 98.3% benchmark result")
+        elif backend == "groq":
+            groq_key_input = st.text_input(
+                "Groq API Key",
+                type="password",
+                value="",
+                placeholder="gsk_..." if not cfg["groq_key"] else "set via env ✓",
+                help="Free at console.groq.com — stored only in session memory.",
+            )
+            st.caption(f"Model: `{cfg['groq_model']}`")
+        elif backend == "openai":
+            openai_key_input = st.text_input(
+                "OpenAI API Key",
+                type="password",
+                value="",
+                placeholder="sk-..." if not cfg["openai_key"] else "set via env ✓",
+                help="Stored only in session memory — never persisted.",
+            )
+            st.caption(f"Model: `{cfg['openai_model']}`")
+        else:
+            st.text_input("Ollama URL",   value=cfg["ollama_url"],   key="ollama_url")
+            st.text_input("Ollama Model", value=cfg["ollama_model"], key="ollama_model")
+
+        st.divider()
+        st.text_input("Chroma persist dir", value=cfg["persist_dir"], key="persist_dir")
+        limit = st.number_input("Row LIMIT", min_value=50, max_value=1000, value=cfg["limit"], step=50)
+
+        if _HF_MODE:
+            st.divider()
+            st.markdown(
+                "**Benchmark results** (59 gold queries):\n\n"
+                "| Model | Accuracy | Latency |\n"
+                "|---|---|---|\n"
+                "| gpt-4o-mini | 100% | 1.4 s |\n"
+                "| qwen2.5-coder:7b (local) | 98.3% | 4.8 s |\n"
+                "| Groq llama-3.3-70b | 52.5% | 7.3 s |\n"
+                "| Groq Qwen3-32B (reasoning) | 49.2% | 34.5 s |\n\n"
+                "_A 7B specialized model beats a 32B reasoning model by 49 pts._"
+            )
+
+    # ── Main area ─────────────────────────────────────────────────────────────
     col1, col2 = st.columns([2, 1])
     with col1:
-        question = st.text_area("Ask a question:", value="top 5 customers by spend", height=90)
-
+        question = st.text_area(
+            "Ask a question about the database:",
+            value="Show me the top 5 customers by total spend",
+            height=90,
+        )
         b1, b2, b3 = st.columns(3)
-        do_retrieve = b1.button("🔎 Retrieve", use_container_width=True)
-        do_generate = b2.button("✨ Generate SQL", use_container_width=True)
-        do_run = b3.button("▶ Run SQL", use_container_width=True)
+        do_retrieve = b1.button("🔎 Retrieve Schema", use_container_width=True)
+        do_generate = b2.button("✨ Generate SQL",    use_container_width=True)
+        do_run      = b3.button("▶ Run SQL",          use_container_width=True)
 
     with col2:
         st.subheader("Status")
         st.write(f"**Domain:** `{domain}`")
+        st.write(f"**Backend:** `{st.session_state.get('backend', 'openai')}`")
+        st.write(f"**DB mode:** `{'SQLite' if _HF_MODE else 'PostgreSQL'}`")
         st.write(f"**Top-K:** `{k}`")
-        st.write(f"**Model:** `{st.session_state['ollama_model']}`")
 
-    # session state
+    # ── Session state init ─────────────────────────────────────────────────────
     st.session_state.setdefault("chunks", [])
     st.session_state.setdefault("sql", "")
     st.session_state.setdefault("results_df", None)
     st.session_state.setdefault("error", "")
 
-    def show_error(e):
+    def show_error(e: Exception):
         st.session_state["error"] = str(e)
-        st.error(st.session_state["error"])
+        st.error(str(e))
 
-    # Actions
+    # ── Action: Retrieve ──────────────────────────────────────────────────────
     if do_retrieve:
         try:
             st.session_state["error"] = ""
@@ -86,6 +223,7 @@ def main():
         except Exception as e:
             show_error(e)
 
+    # ── Action: Generate SQL ──────────────────────────────────────────────────
     if do_generate:
         try:
             st.session_state["error"] = ""
@@ -93,54 +231,44 @@ def main():
                 st.session_state["chunks"] = cached_retrieve(
                     domain, question, k, st.session_state["persist_dir"]
                 )
-
-            prompt = build_prompt(
-                domain=domain,
-                question=question,
-                chunks=st.session_state["chunks"],
-                dialect="PostgreSQL",
-            )
-            raw = call_ollama(
-                prompt=prompt,
-                model=st.session_state["ollama_model"],
-                base_url=st.session_state["ollama_url"],
-            )
+            # Use SQLite dialect on Spaces (syntax is nearly identical to Postgres for SELECTs)
+            dialect = "SQLite" if _HF_MODE else "PostgreSQL"
+            prompt = build_prompt(domain=domain, question=question,
+                                  chunks=st.session_state["chunks"], dialect=dialect)
+            with st.spinner("Generating SQL..."):
+                raw = llm_generate(prompt, cfg, openai_key_input, groq_key_input, sidebar_hf_token)
             sql = validate_and_fix(extract_sql(raw), limit=int(limit))
             st.session_state["sql"] = sql
-            st.success("SQL generated + validated (SELECT-only + LIMIT enforced).")
+            st.success("SQL generated ✓  (SELECT-only + LIMIT enforced)")
         except Exception as e:
             show_error(e)
 
+    # ── Action: Run SQL ────────────────────────────────────────────────────────
     if do_run:
         try:
             st.session_state["error"] = ""
             if not st.session_state["sql"]:
-                # generate first if needed
+                # auto-generate first
                 if not st.session_state["chunks"]:
                     st.session_state["chunks"] = cached_retrieve(
                         domain, question, k, st.session_state["persist_dir"]
                     )
-                prompt = build_prompt(
-                    domain=domain,
-                    question=question,
-                    chunks=st.session_state["chunks"],
-                    dialect="PostgreSQL",
-                )
-                raw = call_ollama(
-                    prompt=prompt,
-                    model=st.session_state["ollama_model"],
-                    base_url=st.session_state["ollama_url"],
-                )
+                dialect = "SQLite" if _HF_MODE else "PostgreSQL"
+                prompt = build_prompt(domain=domain, question=question,
+                                      chunks=st.session_state["chunks"], dialect=dialect)
+                with st.spinner("Generating SQL..."):
+                    raw = llm_generate(prompt, cfg, openai_key_input, groq_key_input, sidebar_hf_token)
                 st.session_state["sql"] = validate_and_fix(extract_sql(raw), limit=int(limit))
 
-            cols, rows = run_sql(dbname=domain, sql=st.session_state["sql"], max_rows=int(limit))
+            with st.spinner("Running query..."):
+                cols, rows = run_sql(dbname=domain, sql=st.session_state["sql"], max_rows=int(limit))
             st.session_state["results_df"] = pd.DataFrame(rows, columns=cols)
             st.success(f"Query executed. Rows returned: {len(st.session_state['results_df'])}")
         except Exception as e:
             show_error(e)
 
+    # ── Results layout ────────────────────────────────────────────────────────
     st.divider()
-
     left, right = st.columns([1, 1])
 
     with left:
@@ -153,7 +281,7 @@ def main():
                 with st.expander(f"Chunk {i} | table={meta.get('table')} | dist={dist_str}"):
                     st.code(c["text"])
         else:
-            st.info("Click **Retrieve** to view schema context used for generation.")
+            st.info("Click **Retrieve Schema** to view schema context used for generation.")
 
     with right:
         st.subheader("🧾 Generated SQL")
