@@ -1,0 +1,76 @@
+# docker-compose.yml — NL→SQL Copilot
+#
+# Quick start:
+#   docker-compose up --build
+#
+# With Ollama (local LLM):
+#   docker-compose --profile with-ollama up --build
+#   docker exec -it nl2sql-ollama ollama pull qwen2.5-coder:7b
+#
+# Using OpenAI instead of Ollama:
+#   Set OPENAI_API_KEY in your .env and point OLLAMA_MODEL / OLLAMA_URL to OpenAI.
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    build:
+      context: .
+      dockerfile: postgres.Dockerfile
+    container_name: nl2sql-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  # ── Streamlit App ──────────────────────────────────────────────────────────
+  app:
+    build: .
+    container_name: nl2sql-app
+    ports:
+      - "8501:8501"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SQL_MAX_ROWS: ${SQL_MAX_ROWS:-200}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CHROMA_DIR: data/chroma
+    env_file:
+      - .env
+    volumes:
+      # Persist the Chroma index so it survives container restarts
+      - chroma_data:/app/data/chroma
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Ollama (local LLM) — optional, enable with --profile with-ollama ──────
+  ollama:
+    image: ollama/ollama
+    container_name: nl2sql-ollama
+    profiles:
+      - with-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  pgdata:       # Postgres data
+  chroma_data:  # ChromaDB vector index
+  ollama_data:  # Ollama model weights

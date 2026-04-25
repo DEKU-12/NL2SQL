@@ -11,6 +11,69 @@ from src.t2sql.guardrails import validate_and_fix, strip_code_fences
 from src.t2sql.executor import run_sql
 
 
+def call_hf_inference(prompt: str, model: str = "Qwen/Qwen2.5-Coder-7B-Instruct", api_key: str | None = None) -> str:
+    """
+    Call HF Inference API — runs the exact same qwen2.5-coder:7b used in local benchmarks.
+    Free tier available at huggingface.co/settings/tokens (read token is enough).
+    """
+    from huggingface_hub import InferenceClient
+    key = api_key or os.getenv("HF_TOKEN", "")
+    if not key:
+        raise ValueError("HF_TOKEN not set. Get a free token at huggingface.co/settings/tokens.")
+    client = InferenceClient(model=model, token=key)
+    response = client.chat_completion(
+        messages=[
+            {"role": "system", "content": "You are a precise Text-to-SQL generator. Output ONLY SQL."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=512,
+        temperature=0.1,
+    )
+    return response.choices[0].message.content or ""
+
+
+def call_groq(prompt: str, model: str = "llama-3.3-70b-versatile", api_key: str | None = None) -> str:
+    """
+    Call Groq's API (free tier, very fast). Used as the default on HF Spaces.
+    """
+    from groq import Groq
+    key = api_key or os.getenv("GROQ_API_KEY", "")
+    if not key:
+        raise ValueError("GROQ_API_KEY is not set.")
+    client = Groq(api_key=key)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a precise Text-to-SQL generator. Output ONLY SQL."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=512,
+        temperature=0.1,
+    )
+    return response.choices[0].message.content or ""
+
+
+def call_openai(prompt: str, model: str = "gpt-4o-mini", api_key: str | None = None) -> str:
+    """
+    Call OpenAI chat completion API. Used on HF Spaces (no local Ollama).
+    """
+    from openai import OpenAI
+    key = api_key or os.getenv("OPENAI_API_KEY", "")
+    if not key:
+        raise ValueError("OPENAI_API_KEY is not set. Please add it in the sidebar or as a Space secret.")
+    client = OpenAI(api_key=key)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a precise Text-to-SQL generator. Output ONLY SQL."},
+            {"role": "user", "content": prompt},
+        ],
+        max_completion_tokens=512,
+        temperature=0.1,
+    )
+    return response.choices[0].message.content or ""
+
+
 def call_ollama(prompt: str, model: str, base_url: str = "http://localhost:11434") -> str:
     """
     Uses Ollama /api/chat (modern Ollama versions).
@@ -32,6 +95,9 @@ def call_ollama(prompt: str, model: str, base_url: str = "http://localhost:11434
 
 
 def extract_sql(text: str) -> str:
+    import re
+    # Strip <think>...</think> reasoning blocks (Qwen3, DeepSeek-R1, etc.)
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
     t = strip_code_fences(text).strip()
     for prefix in ["SQLQuery:", "SQL:", "Query:"]:
         if t.lower().startswith(prefix.lower()):

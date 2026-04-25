@@ -1,0 +1,957 @@
+model,domain,question,status,error,latency_s,input_tokens,output_tokens,cost_usd,pred_sql_safe,gold_sql_safe,pred_sql_raw,gold_sql_raw,pred_rows,gold_rows
+groq-qwen/qwen3-32b,chinook,top 5 customers by spend,OK,,1.037,0,0,0.0,"SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend
+FROM customer c
+JOIN invoice i ON i.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_spend DESC
+LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spend DESC LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend
+FROM customer c
+JOIN invoice i ON i.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_spend DESC
+LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(i.total) AS total_spend FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_spend DESC LIMIT 5;",5.0,5.0
+groq-qwen/qwen3-32b,chinook,total invoices per country,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,5.569,0,0,0.0,,,"<think>
+Okay, let's tackle this user question: ""total invoices per country"". The user wants to know how many invoices there are for each country. 
+
+First, I need to look at the schema provided. The relevant tables here are invoice and customer. The invoice table has a billing_country column, which is what we need to group by. Each invoice is linked to a customer via customer_id, but since the question is about the country, which is in the invoice table, maybe we don't even need to join with customer? Wait, no, the user is asking for invoices per country, and the billing_country is directly in the invoice table. So actually, we can just use the invoice table alone.
+
+Wait, let me check the columns again. The invoice table has billing_country. So each invoice has a billing country. So to get the total number of invoices per country, we can group by billing_country. 
+
+So the SQL would be a SELECT statement on the invoice table, grouping by billing_country and counting the number of invoices in each group. The user might want the country name and the count. 
+
+But the example in the few-shot examples has a similar case. For example, ""top 5 cities by invoice count"" uses the billing_city from invoice. So following that, this case would be similar. 
+
+So the SQL should be:
+
+SELECT billing_country AS country, COUNT(*) AS invoice_count
+FROM invoice
+GROUP BY billing_country
+ORDER BY invoice_count DESC
+LIMIT 200;
+
+Wait, the user didn't specify a particular order, but the examples show that when it's a top N, they use ORDER BY and LIMIT. However, in this case, the user just says ""total invoices per country"". The examples also show that for similar aggregate queries without a top N, they use LIMIT 200 as a default. For example, ""total invoices per country"" in the examples has ORDER BY invoice_count DESC and LIMIT 200. 
+
+So even though the user didn't specify an order or limit, the guardrails require including LIMIT. So I need to include ORDER BY and LIMIT. But since it's not a top N, maybe the order doesn't matter. However, the examples show that even for simple aggregates, they use ORDER BY and LIMIT. For instance, the example ""total invoices per country"" uses ORDER BY invoice_count DESC and LIMIT 200. 
+
+Wait, looking back at the few-shot examples, the user question ""total invoices per country""","SELECT i.billing_country AS country, COUNT(*) AS invoice_count FROM invoice i GROUP BY i.billing_country ORDER BY invoice_count DESC LIMIT 200;",,
+groq-qwen/qwen3-32b,chinook,top 5 cities by invoice count,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,32.662,0,0,0.0,,,"<think>
+Okay, let's tackle this user question: ""top 5 cities by invoice count"". The user wants to know which cities have the highest number of invoices. 
+
+First, I need to look at the schema context provided. The relevant table here is the invoice table, which has a billing_city column. Each invoice is linked to a customer, but the billing city is directly in the invoice table.
+
+The task is to count the number of invoices per city. So I should group the invoices by billing_city and count them. The SQL query will need to select the billing_city and count the number of invoices in each group. 
+
+I need to make sure to use the correct column names. The invoice table's billing_city is the right column. Since the user wants the top 5, I'll order the results in descending order and limit to 5. 
+
+Wait, the example queries show that when grouping by a column, they include the column in the SELECT and use COUNT(*). So the structure should be:
+
+SELECT billing_city, COUNT(*) AS invoice_count
+FROM invoice
+GROUP BY billing_city
+ORDER BY invoice_count DESC
+LIMIT 5;
+
+But I should check if there are any foreign keys or joins needed. The user question doesn't mention any relationships beyond the invoice itself. Since the billing_city is directly in the invoice table, no joins are necessary here. 
+
+Also, the rules say to include the primary key ID column when listing entities, but here we're grouping by city, which isn't an entity with an ID. The examples like ""top 5 cities by invoice count"" don't include an ID, so it's okay. 
+
+Another thing: the ORDER BY should be on the count, and LIMIT 5 is required. The examples also use table aliases, but since there's only one table here, maybe it's not necessary. However, the rule says to qualify columns with table aliases. But if there's no ambiguity, maybe it's optional. But to follow the rules strictly, perhaps I should use an alias. 
+
+Wait, the example for ""top 5 cities by invoice count"" is:
+
+SELECT i.billing_city AS city, COUNT(*) AS invoice_count
+FROM invoice i
+GROUP BY i.billing_city
+ORDER BY invoice_count DESC
+LIMIT 5;
+
+So they used the table alias 'i' and qualified the billing_city. Therefore, I should do the same here. 
+
+So the correct SQL would be selecting i.billing_city, count, group by that column, order","SELECT i.billing_city AS city, COUNT(*) AS invoice_count FROM invoice i GROUP BY i.billing_city ORDER BY invoice_count DESC LIMIT 5;",,
+groq-qwen/qwen3-32b,chinook,average invoice total,OK,,31.709,0,0,0.0,"SELECT AVG(i.total) AS avg_invoice_total
+FROM invoice i
+LIMIT 200;",SELECT AVG(i.total) AS avg_invoice_total FROM invoice i LIMIT 200;,"SELECT AVG(i.total) AS avg_invoice_total
+FROM invoice i
+LIMIT 200;",SELECT AVG(i.total) AS avg_invoice_total FROM invoice i LIMIT 200;,1.0,1.0
+groq-qwen/qwen3-32b,chinook,total revenue overall,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,30.861,0,0,0.0,,,"<think>
+Okay, let's see. The user is asking for the total revenue overall. From the examples, I remember that revenue is calculated by summing the invoice totals. The few-shot examples show that when someone asks for total revenue, they use the SUM function on the total column of the invoice table.
+
+Looking at the schema context, the invoice table has a 'total' column which is a numeric type. So the approach would be to select the sum of that column. The example for ""total revenue overall"" uses SUM(i.total) and from the invoice table. Also, the examples include a LIMIT clause, even if it's 200, to comply with guardrails. 
+
+I need to make sure I'm using the correct table and column. The invoice table's primary key is invoice_id, but since we're aggregating all rows, we don't need to group by anything. The SQL should be a simple SELECT SUM(total) from invoice, then LIMIT 1. Wait, in the example for ""total revenue overall"", the SQL is SELECT SUM(i.total) AS total_revenue FROM invoice i LIMIT 200;. But the LIMIT is 200 here. However, since it's a single-value metric, maybe the LIMIT is just a guardrail. But the user's question is about total revenue, which is one value. So the query should just return that sum. The LIMIT is required by the rules, so even though it's one row, we need to include it. So the correct SQL would be selecting the sum, aliasing it, and adding LIMIT 200 as per the example. 
+
+I need to check if there's any other table involved. The invoice_line table has unit_price and quantity, but the examples show that for total revenue, they use invoice.total. For instance, the ""total revenue overall"" example uses the invoice.total column directly. So the correct approach here is to sum the total column from the invoice table. 
+
+Therefore, the SQL should be:
+
+SELECT SUM(total) AS total_revenue FROM invoice LIMIT 200;
+
+But according to the few-shot examples, they use table aliases like 'i' for invoice. So maybe it's better to write it as:
+
+SELECT SUM(i.total) AS total_revenue FROM invoice i LIMIT 200;
+
+Yes, that's consistent with the examples provided. The alias isn't strictly necessary here, but the examples include it, so following that style. 
+
+No joins are needed because each invoice's",SELECT SUM(i.total) AS total_revenue FROM invoice i LIMIT 200;,,
+groq-qwen/qwen3-32b,chinook,top 10 customers by number of invoices,OK,,32.532,0,0,0.0,"SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS invoice_count
+FROM customer c
+JOIN invoice i ON i.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY invoice_count DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS invoice_count FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY invoice_count DESC LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS invoice_count
+FROM customer c
+JOIN invoice i ON i.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY invoice_count DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, COUNT(i.invoice_id) AS invoice_count FROM customer c JOIN invoice i ON i.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY invoice_count DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,chinook,customers who never made a purchase,OK,,30.365,0,0,0.0,"SELECT c.customer_id, c.first_name, c.last_name
+FROM customer c
+LEFT JOIN invoice i ON i.customer_id = c.customer_id
+WHERE i.invoice_id IS NULL
+ORDER BY c.customer_id
+LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, c.email FROM customer c LEFT JOIN invoice i ON i.customer_id = c.customer_id WHERE i.invoice_id IS NULL ORDER BY c.customer_id LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name
+FROM customer c
+LEFT JOIN invoice i ON i.customer_id = c.customer_id
+WHERE i.invoice_id IS NULL
+ORDER BY c.customer_id
+LIMIT 200;","SELECT c.customer_id, c.first_name, c.last_name, c.email FROM customer c LEFT JOIN invoice i ON i.customer_id = c.customer_id WHERE i.invoice_id IS NULL ORDER BY c.customer_id LIMIT 200;",0.0,0.0
+groq-qwen/qwen3-32b,chinook,top 10 artists by total track sales,OK,,30.37,0,0,0.0,"SELECT ar.artist_id, ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+JOIN track t ON t.album_id = al.album_id
+JOIN invoice_line il ON il.track_id = t.track_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY total_sales DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id JOIN invoice_line il ON il.track_id = t.track_id GROUP BY ar.artist_id, ar.name ORDER BY total_sales DESC LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+JOIN track t ON t.album_id = al.album_id
+JOIN invoice_line il ON il.track_id = t.track_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY total_sales DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, SUM(il.unit_price * il.quantity) AS total_sales FROM artist ar JOIN album al ON al.artist_id = ar.artist_id JOIN track t ON t.album_id = al.album_id JOIN invoice_line il ON il.track_id = t.track_id GROUP BY ar.artist_id, ar.name ORDER BY total_sales DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,chinook,top 5 albums by number of tracks,OK,,30.426,0,0,0.0,"SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks
+FROM album al
+JOIN track t ON t.album_id = al.album_id
+GROUP BY al.album_id, al.title
+ORDER BY num_tracks DESC
+LIMIT 5;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY num_tracks DESC LIMIT 5;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks
+FROM album al
+JOIN track t ON t.album_id = al.album_id
+GROUP BY al.album_id, al.title
+ORDER BY num_tracks DESC
+LIMIT 5;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS num_tracks FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY num_tracks DESC LIMIT 5;",5.0,5.0
+groq-qwen/qwen3-32b,chinook,top 5 genres by number of tracks,FAIL_EXEC_PRED,"syntax error at or near ""LIMIT""
+LINE 5: LIMIT 200;
+        ^
+",30.719,0,0,0.0,"SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS track_count
+FROM genre g
+JOIN track t ON t.genre_id = g.genre_id
+GROUP BY
+LIMIT 200;","SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS num_tracks FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.genre_id, g.name ORDER BY num_tracks DESC LIMIT 5;","SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS track_count
+FROM genre g
+JOIN track t ON t.genre_id = g.genre_id
+GROUP BY","SELECT g.genre_id, g.name AS genre, COUNT(t.track_id) AS num_tracks FROM genre g JOIN track t ON t.genre_id = g.genre_id GROUP BY g.genre_id, g.name ORDER BY num_tracks DESC LIMIT 5;",,
+groq-qwen/qwen3-32b,chinook,number of distinct customers,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,30.852,0,0,0.0,,,"<think>
+Okay, let's see. The user is asking for the number of distinct customers. So I need to generate a SQL query that counts the unique customers.
+
+Looking at the schema, there's a customer table with a customer_id as the primary key. Since customer_id is unique for each customer, counting that should give the correct number.
+
+The simplest way is to use COUNT(customer_id) in a SELECT statement. Since the user wants the total, I don't need to group anything. Just select the count from the customer table. Also, the user didn't specify any conditions, so it's a straightforward count.
+
+I should make sure to use the correct table name and column. The customer table is in the public schema, but since the default is public, I can just use customer.customer_id.
+
+The query should be something like: SELECT COUNT(DISTINCT customer_id) FROM customer;
+
+Wait, but since customer_id is the primary key, each entry is unique. So using COUNT(customer_id) is the same as COUNT(DISTINCT customer_id), but maybe using COUNT(*) is even simpler. However, the user said ""distinct customers"", so using COUNT(DISTINCT customer_id) is more accurate, even though in this case it's redundant. But to strictly follow the user's wording, maybe include DISTINCT.
+
+But in practice, COUNT(customer_id) would be sufficient because the primary key ensures uniqueness. However, to match the exact user request, using DISTINCT is better.
+
+So the SQL would be SELECT COUNT(DISTINCT customer_id) AS customer_count FROM customer;
+
+Also, the user mentioned to include LIMIT when returning rows. Since this is an aggregate function, the LIMIT might not be necessary, but according to the rules, I must include it. The default guardrails will handle it, but the example queries show that for single-value metrics, they include LIMIT 200. For example, the ""total revenue overall"" query uses LIMIT 200. So I should add LIMIT 200 here as well.
+
+So the final query would be:
+
+SELECT COUNT(DISTINCT c.customer_id) AS customer_count
+FROM public.customer c
+LIMIT 200;
+
+Wait, but in the examples, when it's a single-value metric, they don't use table aliases. For example, ""total revenue overall"" uses ""FROM invoice i"". But maybe it's optional. However, the rule says to qualify columns with table aliases. But in this case, if I'm just counting the customer_id from the customer",SELECT COUNT(*) AS customer_count FROM customer LIMIT 200;,,
+groq-qwen/qwen3-32b,chinook,number of distinct artists,OK,,30.405,0,0,0.0,"SELECT COUNT(*) AS artist_count FROM public.artist
+LIMIT 200;",SELECT COUNT(*) AS artist_count FROM artist LIMIT 200;,SELECT COUNT(*) AS artist_count FROM public.artist;,SELECT COUNT(*) AS artist_count FROM artist LIMIT 200;,1.0,1.0
+groq-qwen/qwen3-32b,chinook,tracks per album,FAIL_EXEC_PRED,"argument of JOIN/ON must be type boolean, not type integer
+LINE 3: JOIN track t ON t.album_id
+                        ^
+",29.773,0,0,0.0,"SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count
+FROM album al
+JOIN track t ON t.album_id
+LIMIT 200;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY track_count DESC LIMIT 200;","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count
+FROM album al
+JOIN track t ON t.album_id","SELECT al.album_id, al.title AS album, COUNT(t.track_id) AS track_count FROM album al JOIN track t ON t.album_id = al.album_id GROUP BY al.album_id, al.title ORDER BY track_count DESC LIMIT 200;",,
+groq-qwen/qwen3-32b,chinook,albums per artist,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,32.843,0,0,0.0,,,"<think>
+Okay, let's tackle this user question: ""albums per artist"". The user wants to know how many albums each artist has. 
+
+First, I need to look at the schema. The relevant tables here are artist and album. The album table has an artist_id foreign key that links to the artist table. So, each album is associated with an artist.
+
+The goal is to count the number of albums per artist. That means I need to join the artist table with the album table on artist_id. Then, group by the artist to aggregate the count of albums.
+
+Let me check the columns. The artist table has artist_id and name. The album table has album_id, which is the primary key, and artist_id. So, for each artist, count the number of album_ids.
+
+The SQL structure should be: select artist_id, name, count(album_id). From artist join album on artist_id. Group by artist_id and name. Order by the count in descending order, maybe. And include a limit as per the rules.
+
+Wait, the user didn't specify a limit, but the rules say to always include LIMIT. The examples show that when the question doesn't mention a number, they use LIMIT 200. Like in ""total invoices per country"" which uses LIMIT 200. So here, since the user is asking for ""albums per artist"", I should add a reasonable limit. The examples show that when it's a list, they use LIMIT 200. So I'll put LIMIT 200.
+
+Also, need to qualify columns with table aliases. The artist table is ar, album is al. So group by ar.artist_id, ar.name. The count is COUNT(al.album_id) as album_count.
+
+Let me make sure there are no other tables involved. The relationships show that album's artist_id links directly to artist's artist_id. So the join is straightforward.
+
+So the final SQL should be:
+
+SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY album_count DESC
+LIMIT 200;
+
+Yes, that matches the examples like ""artists with most albums"" which uses a similar structure. Also, the user's question is similar to ""albums per artist"" in the few-shot examples, which the assistant answered with a query joining artist and album, grouping by artist, and using COUNT","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count FROM artist ar JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id, ar.name ORDER BY album_count DESC LIMIT 200;",,
+groq-qwen/qwen3-32b,chinook,artists with most albums,OK,,30.353,0,0,0.0,"SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY album_count DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count FROM artist ar JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id, ar.name ORDER BY album_count DESC LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count
+FROM artist ar
+JOIN album al ON al.artist_id = ar.artist_id
+GROUP BY ar.artist_id, ar.name
+ORDER BY album_count DESC
+LIMIT 10;","SELECT ar.artist_id, ar.name AS artist, COUNT(al.album_id) AS album_count FROM artist ar JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id, ar.name ORDER BY album_count DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,chinook,top 5 tracks by unit price,OK,,29.517,0,0,0.0,"SELECT t.track_id, t.name AS track, t.unit_price
+FROM track t
+ORDER BY t.unit_price DESC, t.track_id ASC
+LIMIT 5;","SELECT t.track_id, t.name AS track, t.unit_price FROM track t ORDER BY t.unit_price DESC, t.track_id ASC LIMIT 5;","SELECT t.track_id, t.name AS track, t.unit_price
+FROM track t
+ORDER BY t.unit_price DESC, t.track_id ASC
+LIMIT 5;","SELECT t.track_id, t.name AS track, t.unit_price FROM track t ORDER BY t.unit_price DESC, t.track_id ASC LIMIT 5;",5.0,5.0
+groq-qwen/qwen3-32b,chinook,longest track overall,OK,,29.29,0,0,0.0,"SELECT t.track_id, t.name, t.milliseconds
+FROM track t
+ORDER BY t.milliseconds DESC
+LIMIT 1;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 1;","SELECT t.track_id, t.name, t.milliseconds
+FROM track t
+ORDER BY t.milliseconds DESC
+LIMIT 1;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 1;",1.0,1.0
+groq-qwen/qwen3-32b,chinook,top 10 longest tracks,OK,,32.55,0,0,0.0,"SELECT t.track_id, t.name, t.milliseconds
+FROM track t
+ORDER BY t.milliseconds DESC
+LIMIT 10;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 10;","SELECT t.track_id, t.name, t.milliseconds
+FROM track t
+ORDER BY t.milliseconds DESC
+LIMIT 10;","SELECT t.track_id, t.name AS track, t.milliseconds FROM track t ORDER BY t.milliseconds DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,chinook,playlists with most tracks,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,30.757,0,0,0.0,,,"<think>
+Okay, let's tackle this query. The user wants to find the playlists with the most tracks. So, I need to figure out which playlists have the highest number of tracks associated with them.
+
+First, I should look at the relevant tables. The 'playlist' table has playlist information, and the 'playlist_track' table links playlists to tracks. Each entry in 'playlist_track' represents a track in a playlist. To find the number of tracks per playlist, I need to count the entries in 'playlist_track' grouped by playlist_id.
+
+So the plan is: join the 'playlist' table with 'playlist_track' on playlist_id, then group by playlist_id and count the track_ids. Then order the results in descending order of the count. Since the user probably wants the top ones, adding a LIMIT makes sense. The example queries often use LIMIT 10 or 5, but since the user didn't specify a number, maybe default to 10 as in some previous examples.
+
+Wait, the user just said ""playlists with most tracks"" without specifying how many. But the few-shot examples show that when the question is like ""top N"", they use LIMIT N. Since the user didn't specify a number, maybe the assistant should default to a reasonable number like 10, as in the example for ""playlists with most tracks"" which uses LIMIT 10. Let me check the examples again. Oh yes, there's an example for ""playlists with most tracks"" that uses LIMIT 10. So I should follow that.
+
+So the SQL would select playlist_id, name, and count of tracks from playlist_track. Join playlist and playlist_track on playlist_id. Group by playlist_id and name. Order by the count descending. Limit to 10.
+
+Let me make sure about the columns. The 'playlist' table has playlist_id and name. The 'playlist_track' has playlist_id and track_id. The primary key is both, but we need to count the number of tracks per playlist. So the count is COUNT(track_id) or COUNT(*), but since track_id is part of the primary key, COUNT(track_id) is safe.
+
+So the SQL should be:
+
+SELECT p.playlist_id, p.name, COUNT(pt.track_id) AS track_count
+FROM playlist p
+JOIN playlist_track pt ON pt.playlist_id = p.playlist_id
+GROUP BY p.playlist_id, p.name
+ORDER BY track_count DESC
+LIMIT 10;
+
+That should do it. Let me check","SELECT p.playlist_id, p.name AS playlist, COUNT(pt.track_id) AS track_count FROM playlist p JOIN playlist_track pt ON pt.playlist_id = p.playlist_id GROUP BY p.playlist_id, p.name ORDER BY track_count DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,chinook,tracks that appear in the most playlists,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,32.747,0,0,0.0,,,"<think>
+Okay, let's tackle this user question: ""tracks that appear in the most playlists"". So, the user wants to know which tracks are included in the highest number of playlists. 
+
+First, I need to recall the schema context provided. The relevant tables here are probably the playlist_track and track tables. The playlist_track table has playlist_id and track_id as foreign keys. Each entry in playlist_track represents a track being part of a playlist.
+
+The goal is to count how many times each track appears across all playlists. So, for each track, we need to count the number of playlist entries it's in. Then, we order those counts in descending order and pick the top ones.
+
+Looking at the tables, the track table has track_id and name. The playlist_track table links track_id to playlist_id. So, joining these two tables on track_id would allow us to aggregate the counts.
+
+The steps would be:
+
+1. Join track t with playlist_track pt on t.track_id = pt.track_id.
+2. Group by t.track_id and t.name to aggregate the counts.
+3. Count the number of playlist entries per track.
+4. Order by the count in descending order.
+5. Apply a LIMIT if needed, but the user didn't specify a number, so maybe default to 10 or 200? Wait, looking at previous examples, when the question is about ""top N"", they set LIMIT N. Since the user didn't specify a number, but the example for ""tracks that appear in the most playlists"" in the few-shot examples had a LIMIT 10. Wait, in the few-shot examples, the user question was ""tracks that appear in the most playlists"" and the SQL had LIMIT 10. But in the current problem, the user is asking the same question, so maybe we should follow that example. However, the user might not have specified a number, but the guardrails require a LIMIT. The examples show that when the question is about ""top N"", they use LIMIT N. Since the user's question is similar to the example, I should use LIMIT 10 as in the example. Wait, but the user's question here is exactly the same as one of the few-shot examples. Let me check.
+
+Looking back, in the few-shot examples, there's a Q: ""tracks that appear in the most playlists"" with SQL that uses LIMIT 10. So, following that, the answer here should be the same. Therefore, the SQL should","SELECT t.track_id, t.name AS track, COUNT(pt.playlist_id) AS playlist_count FROM track t JOIN playlist_track pt ON pt.track_id = t.track_id GROUP BY t.track_id, t.name ORDER BY playlist_count DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,dvdrental,top 5 customers by total payments,OK,,38.765,0,0,0.0,"SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_payments DESC
+LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_payments DESC
+LIMIT 5;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 5;",5.0,5.0
+groq-qwen/qwen3-32b,dvdrental,top 10 customers by total payments,OK,,37.765,0,0,0.0,"SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_payments DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments
+FROM customer c
+JOIN payment p ON p.customer_id = c.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name
+ORDER BY total_payments DESC
+LIMIT 10;","SELECT c.customer_id, c.first_name, c.last_name, SUM(p.amount) AS total_payments FROM customer c JOIN payment p ON p.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name ORDER BY total_payments DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,dvdrental,most rented film titles,OK,,37.338,0,0,0.0,"SELECT f.film_id, f.title, COUNT(*) AS rental_count
+FROM rental r
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+GROUP BY f.film_id, f.title
+ORDER BY rental_count DESC
+LIMIT 10;","SELECT f.film_id, f.title, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 10;","SELECT f.film_id, f.title, COUNT(*) AS rental_count
+FROM rental r
+JOIN inventory i ON i.inventory_id = r.inventory_id
+JOIN film f ON f.film_id = i.film_id
+GROUP BY f.film_id, f.title
+ORDER BY rental_count DESC
+LIMIT 10;","SELECT f.film_id, f.title, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id GROUP BY f.film_id, f.title ORDER BY rental_count DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,dvdrental,top 5 categories by rentals,OK,,37.275,0,0,0.0,"SELECT c.category_id, c.name AS category, COUNT(r.rental_id) AS rental_count
+FROM category c
+JOIN film_category fc ON fc.category_id = c.category_id
+JOIN film f ON f.film_id = fc.film_id
+JOIN inventory i ON i.film_id = f.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+GROUP BY c.category_id, c.name
+ORDER BY rental_count DESC
+LIMIT 5;","SELECT c.category_id, c.name AS category, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id JOIN film_category fc ON fc.film_id = f.film_id JOIN category c ON c.category_id = fc.category_id GROUP BY c.category_id, c.name ORDER BY rental_count DESC LIMIT 5;","SELECT c.category_id, c.name AS category, COUNT(r.rental_id) AS rental_count
+FROM category c
+JOIN film_category fc ON fc.category_id = c.category_id
+JOIN film f ON f.film_id = fc.film_id
+JOIN inventory i ON i.film_id = f.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+GROUP BY c.category_id, c.name
+ORDER BY rental_count DESC
+LIMIT 5;","SELECT c.category_id, c.name AS category, COUNT(*) AS rental_count FROM rental r JOIN inventory i ON i.inventory_id = r.inventory_id JOIN film f ON f.film_id = i.film_id JOIN film_category fc ON fc.film_id = f.film_id JOIN category c ON c.category_id = fc.category_id GROUP BY c.category_id, c.name ORDER BY rental_count DESC LIMIT 5;",5.0,5.0
+groq-qwen/qwen3-32b,dvdrental,total revenue by month,OK,,38.047,0,0,0.0,"SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY month
+ORDER BY month
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY month
+ORDER BY month
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;",4.0,4.0
+groq-qwen/qwen3-32b,dvdrental,total revenue by year,OK,,37.418,0,0,0.0,"SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY year
+ORDER BY year
+LIMIT 200;","SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue FROM payment p GROUP BY year ORDER BY year LIMIT 200;","SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY year
+ORDER BY year
+LIMIT 200;","SELECT DATE_TRUNC('year', p.payment_date) AS year, SUM(p.amount) AS revenue FROM payment p GROUP BY year ORDER BY year LIMIT 200;",1.0,1.0
+groq-qwen/qwen3-32b,dvdrental,average rental duration in days,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,36.81,0,0,0.0,,,"<think>
+Okay, let's tackle this query. The user wants the average rental duration in days. The question is similar to some examples I've seen before, like the average rental duration. 
+
+First, I need to look at the tables involved. The rental table has rental_date and return_date. To find the duration, I subtract return_date minus rental_date. But I have to make sure that the return_date isn't null, because some rentals might not be returned yet. So I need a WHERE clause to filter out those where return_date is not null.
+
+In the example provided earlier for average rental duration, they used EXTRACT(EPOCH FROM ...) to get the difference in seconds and then converted to days by dividing by 86400. But maybe there's a simpler way in PostgreSQL. Wait, the example uses EXTRACT with EPOCH, which gives the number of seconds. So dividing by 86400 (seconds in a day) gives days. That makes sense.
+
+So the SQL should select the average of (return_date - rental_date) in days. But how to calculate that? Using EXTRACT(EPOCH FROM (return_date - rental_date)) / 86400.0. Then take the average of that. 
+
+The tables involved are rental. So I need to select from rental r. The columns are rental_date and return_date. The WHERE condition is return_date IS NOT NULL. Then compute the average. 
+
+The example given for average rental duration in days uses that exact method. So following that, the SQL would be:
+
+SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days
+FROM rental r
+WHERE r.return_date IS NOT NULL
+LIMIT 200;
+
+Wait, but the user's question is exactly the same as one of the examples. Let me check the examples again. Yes, there's an example for ""average rental duration in days"" which is answered with that SQL. So the correct answer here is to replicate that.
+
+I need to make sure that I'm using the correct table and columns. The rental table has rental_date and return_date. The calculation is correct. Also, the LIMIT 200 is there as per the example. Since the user's question is a single-value metric, the LIMIT is still applied, even though it's just one row. 
+
+Therefore, the SQL should be exactly as in the example. No need for joins",SELECT AVG(EXTRACT(EPOCH FROM (r.return_date - r.rental_date)) / 86400.0) AS avg_days FROM rental r WHERE r.return_date IS NOT NULL LIMIT 200;,,
+groq-qwen/qwen3-32b,dvdrental,films never rented,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,38.951,0,0,0.0,,,"<think>
+Okay, let's tackle the user's question: ""films never rented."" I need to generate a SQL query that lists all films that have never been rented. 
+
+First, I'll recall the schema. The relevant tables here are film, inventory, and rental. The inventory table links films to rentals through the inventory_id. So, films that have never been rented would be those that don't have any corresponding entries in the rental table via their inventory entries.
+
+So the approach is to find films that don't have any inventory items that have been rented. But wait, inventory is a separate table. Each film can have multiple inventory entries (since inventory has film_id as a foreign key). So even if a film has inventory entries, if none of those inventory items were rented, the film is never rented.
+
+So the plan is: start with the film table, left join with inventory to get all inventory items for each film, then left join with rental on inventory.inventory_id = rental.inventory_id. Then, filter where rental.rental_id is NULL. But since a film might have multiple inventory items, even if one is rented, the film isn't ""never rented."" So we need to ensure that none of the inventory items for the film have been rented.
+
+Alternatively, we can look for films where there are no corresponding entries in the rental table through inventory. So using a LEFT JOIN and checking for NULL in the rental table.
+
+Let me outline the steps:
+
+1. Join film with inventory to get all inventory items for each film.
+2. Left join with rental on inventory.inventory_id = rental.inventory_id.
+3. Filter where rental.inventory_id is NULL (meaning no rental exists for that inventory item).
+4. But since a film might have multiple inventory items, even if one is not rented, but others are, the film isn't ""never rented."" So we need to find films where all inventory items have no corresponding rentals.
+
+Wait, but if we do a LEFT JOIN and check for rental_id IS NULL, but if there are inventory items that are rented, then those would have a rental_id. So for a film that has at least one rented inventory, the LEFT JOIN would return some rows with rental_id not null. But how do we ensure that there are zero rentals for the film?
+
+Hmm, perhaps using a NOT EXISTS clause would be better. For each film, check that there does not exist any rental through inventory.
+
+Another approach: select films where film_id not in (select film_id from inventory i join rental r","SELECT f.film_id, f.title FROM film f LEFT JOIN inventory i ON i.film_id = f.film_id LEFT JOIN rental r ON r.inventory_id = i.inventory_id WHERE r.rental_id IS NULL ORDER BY f.film_id LIMIT 200;",,
+groq-qwen/qwen3-32b,dvdrental,customers who rented more than 10 times,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,38.628,0,0,0.0,,,"<think>
+Okay, let's see. The user wants to find customers who rented more than 10 times. Hmm, so I need to look at the rental table and count how many times each customer has rented.
+
+First, I should start with the customer table and join it with the rental table. The customer table has customer_id, which is a foreign key in the rental table. So the join would be on customer.customer_id = rental.customer_id.
+
+Wait, looking at the schema, the rental table has customer_id as a smallint, and the customer table's primary key is customer_id (integer). But the foreign key is set up correctly, so joining them on customer_id should work.
+
+I need to count the number of rentals per customer. So I'll group by customer_id and count the rental_id or something like that. The rental table has rental_id as the primary key, so counting that would give the number of rentals.
+
+So the SQL would select customer_id, first_name, last_name, and count the rentals. Then group by customer_id, first_name, last_name. Then having count(*) > 10. Also, order by the count descending and maybe limit the results, but the user didn't specify a limit. Wait, the rules say to always include LIMIT. The default guardrails might set a default, but the user's question says ""customers who rented more than 10 times""—maybe there are many, but the example queries use LIMIT 200. Let me check the examples. For instance, in ""customers who rented more than 10 times"", the example uses LIMIT 200. So I should add LIMIT 200 here.
+
+So putting it all together: select customer's id, name, count of rentals from customer join rental on customer_id, group by customer's id and name, having count >= 10 (but the user says ""more than 10"", so >10), order by count descending, limit 200.
+
+Wait, the example for ""customers who rented more than 10 times"" uses HAVING COUNT(r.rental_id) > 10. So that's correct. Let me make sure the columns are qualified. The customer table is aliased as c, rental as r. So the join is on c.customer_id = r.customer_id. Then group by c.customer_id, c.first_name, c.last_name. And order by rentals descending. Yes.
+
+So the SQL should be:
+
+SELECT","SELECT c.customer_id, c.first_name, c.last_name, COUNT(r.rental_id) AS rentals FROM customer c JOIN rental r ON r.customer_id = c.customer_id GROUP BY c.customer_id, c.first_name, c.last_name HAVING COUNT(r.rental_id) > 10 ORDER BY rentals DESC LIMIT 200;",,
+groq-qwen/qwen3-32b,dvdrental,store with highest revenue,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,40.935,0,0,0.0,,,"<think>
+Okay, let's tackle this question: ""store with highest revenue"". The user wants to know which store generated the highest revenue. 
+
+First, I need to figure out how revenue is calculated in the schema. From the previous examples, revenue is typically the sum of payment amounts. The payment table has an 'amount' column, so that's where the data will come from.
+
+Next, I need to link the payments to the stores. The payment table has a 'staff_id' which connects to the staff table. The staff table has a 'store_id' foreign key. So the path is payment -> staff -> store.
+
+So the plan is: join payment with staff on staff_id, then join staff with store on store_id. Then group by store's store_id and sum the payment amounts. Finally, order in descending order and limit to 1 to get the highest.
+
+Wait, but the store table's primary key is store_id. The staff table has a store_id, and each store has a manager_staff_id. But maybe multiple staff members belong to the same store. However, payments are made by customers, and each payment is handled by a staff member. So each payment's staff_id points to the staff who processed it, and that staff's store_id indicates which store they work at. Therefore, summing payments grouped by store_id should work.
+
+So the SQL would start with selecting store_id from store, then join with staff on store.manager_staff_id = staff.staff_id? Wait, no. Because each payment is linked to a staff member via payment.staff_id. So each payment's staff_id is part of a store. So joining payment.staff_id to staff.staff_id, then staff.store_id to store.store_id.
+
+Wait, the staff table has store_id for each staff member. So for each payment, the staff_id in payment tells us which store they belong to. So the correct joins would be payment.staff_id = staff.staff_id, then group by staff.store_id. But since the store table's store_id is the same as staff.store_id, maybe we can just group by store_id directly.
+
+Alternatively, since the store table has store_id, maybe we need to include that. But perhaps it's sufficient to group by staff.store_id. Let me check the schema.
+
+The store table has store_id, manager_staff_id, address_id. The staff table has store_id for each staff member. So each payment's staff_id is linked to a staff member who belongs to a store. Therefore, joining payment","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC LIMIT 1;",,
+groq-qwen/qwen3-32b,dvdrental,revenue by store,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,38.744,0,0,0.0,,,"<think>
+Okay, let's tackle the user's question: ""revenue by store"". The user wants to know the total revenue generated by each store. 
+
+First, I need to figure out which tables are involved. The store information is in the 'store' table. Revenue comes from the 'payment' table since that's where the amounts are recorded. 
+
+Looking at the schema, the 'store' table has a 'store_id' which is the primary key. The 'payment' table has a 'customer_id', 'staff_id', and 'rental_id' as foreign keys. But how do I link payments to stores?
+
+The 'customer' table has a 'store_id' that directly references the 'store' table. So each customer is associated with a store. Therefore, I can join the 'customer' table with the 'store' table on 'store_id'. Then, link the 'payment' table to the 'customer' table via 'customer_id'.
+
+Alternatively, there's another path through the 'staff' table. The 'store' table has a 'manager_staff_id' that links to the 'staff' table, and 'staff' has a 'store_id'. Payments also have a 'staff_id' which links to 'staff'. But since the user wants revenue by store, and payments can be made through any staff member in the store, maybe using the customer's store_id is more straightforward.
+
+So the plan is: join store with customer on store_id, then join payment with customer on customer_id. Then sum the payment amounts grouped by store.
+
+Wait, but the 'store' table's 'store_id' is an integer, and 'customer' has a 'store_id' as smallint. That's okay, they can still join. 
+
+Let me outline the steps:
+
+1. Start with the 'store' table to get each store.
+2. Join with 'customer' on store.store_id = customer.store_id to get all customers per store.
+3. Join 'payment' with customer on customer.customer_id = payment.customer_id to get all payments made by those customers.
+4. Sum the payment.amount for each store.
+
+But wait, maybe there's a more direct way. The payment is processed by a staff member who belongs to a store. So another approach could be joining staff to store and then to payment. Let me check the relationships.
+
+The 'staff' table has a 'store_id', and each payment has a 'staff_id' (the staff who processed it). So joining","SELECT s.store_id, SUM(p.amount) AS revenue FROM store s JOIN staff st ON st.store_id = s.store_id JOIN payment p ON p.staff_id = st.staff_id GROUP BY s.store_id ORDER BY revenue DESC LIMIT 200;",,
+groq-qwen/qwen3-32b,dvdrental,revenue by staff member,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,38.847,0,0,0.0,,,"<think>
+Okay, let's tackle this user question: ""revenue by staff member"". The user wants to know the revenue generated by each staff member. 
+
+First, I need to figure out which tables are involved. The staff table is definitely a key player here. The payment table comes to mind because that's where the amounts are stored. The staff and payment tables are connected via the staff_id. 
+
+Looking at the schema, the payment table has a staff_id column that's a foreign key to the staff table. So, joining these two tables on staff_id makes sense. 
+
+I need to calculate the total revenue for each staff member. That means using an aggregate function like SUM on the payment.amount. Each payment is associated with a staff member who processed it, so grouping by staff's staff_id, first_name, and last_name would give the total per staff member.
+
+The user might want the staff's details along with their total revenue. So, selecting staff_id, first_name, last_name from the staff table, and summing the amount from payment. 
+
+I should make sure to use table aliases to avoid ambiguity. Let's use 'st' for staff and 'p' for payment. The JOIN condition would be p.staff_id = st.staff_id. 
+
+Grouping by the staff's ID and names ensures that each staff member's payments are aggregated correctly. Then, ordering by revenue in descending order makes sense to see the top performers first. 
+
+The user didn't specify a limit, but the rules say to always include a LIMIT. Since it's a list of all staff members, maybe a reasonable default like 200? Wait, the example queries show that when the question is about listing entities without a specific top N, they use LIMIT 200. For example, ""ratings distribution"" uses LIMIT 200. So following that pattern, I'll add LIMIT 200. 
+
+Wait, the user's question is ""revenue by staff member"", which is a per-group output. The additional accuracy rules say that if it's a single-value metric, return one row. But here, it's per staff member, so per-group output is allowed. However, the guardrails still require a LIMIT. The example for ""revenue by staff member"" uses LIMIT 200. So I should follow that.
+
+Putting it all together: SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id = st.staff_id GROUP BY st.staff_id, st.first_name, st.last_name ORDER BY revenue DESC LIMIT 200;",,
+groq-qwen/qwen3-32b,dvdrental,top 5 staff by revenue,OK,,38.341,0,0,0.0,"SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue
+FROM staff st
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY st.staff_id, st.first_name, st.last_name
+ORDER BY revenue DESC
+LIMIT 5;","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id = st.staff_id GROUP BY st.staff_id, st.first_name, st.last_name ORDER BY revenue DESC LIMIT 5;","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue
+FROM staff st
+JOIN payment p ON p.staff_id = st.staff_id
+GROUP BY st.staff_id, st.first_name, st.last_name
+ORDER BY revenue DESC
+LIMIT 5;","SELECT st.staff_id, st.first_name, st.last_name, SUM(p.amount) AS revenue FROM staff st JOIN payment p ON p.staff_id = st.staff_id GROUP BY st.staff_id, st.first_name, st.last_name ORDER BY revenue DESC LIMIT 5;",2.0,2.0
+groq-qwen/qwen3-32b,dvdrental,top 10 cities by customers,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,38.984,0,0,0.0,,,"<think>
+Okay, let's tackle this query. The user wants the top 10 cities by the number of customers. So first, I need to figure out which tables are involved. The customer table has address_id, which links to the address table. The address table has city_id, which connects to the city table. Then, the city table has country_id, but maybe that's not needed here.
+
+So the plan is to join customer to address on address_id, then address to city on city_id. Then group by city to count the customers. The key columns needed are city_id and city name from the city table. But wait, the user wants cities, so maybe we need to count how many customers are in each city. Each customer's address is in an address, which is linked to a city. 
+
+Let me check the schema again. The customer.address_id points to address.address_id. The address.city_id points to city.city_id. So the joins would be customer -> address -> city. 
+
+The SQL should select city.city, count(customer.customer_id), group by city.city, order by count desc, limit 10. But need to make sure to include city_id as per the rules. Wait, the user said ""top 10 cities by customers"", so each city's ID and name should be included. 
+
+So the tables involved are customer, address, city. Join customer to address on address_id, then address to city on city_id. Group by city.city_id and city.city. Then count the number of customers per city. Order descending and limit 10. 
+
+I need to make sure that all joins are correct. The customer's address_id is a smallint, and address.address_id is integer. But PostgreSQL can handle that join. Also, check if there are any other relationships, but according to the relationships provided, it's correct. 
+
+So the SQL would be:
+
+SELECT ci.city_id, ci.city, COUNT(c.customer_id) AS customers
+FROM customer c
+JOIN address a ON a.address_id = c.address_id
+JOIN city ci ON ci.city_id = a.city_id
+GROUP BY ci.city_id, ci.city
+ORDER BY customers DESC
+LIMIT 10;
+
+Yes, that seems right. Let me check the example queries. For example, the ""top 10 countries by customers"" uses customer, address, city, country. Similarly, here for cities, it's one step shorter. The example for top cities isn't there, but the country","SELECT ci.city_id, ci.city, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id GROUP BY ci.city_id, ci.city ORDER BY customers DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,dvdrental,top 10 countries by customers,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,38.552,0,0,0.0,,,"<think>
+Okay, let's tackle this query. The user wants the top 10 countries by the number of customers. So, first, I need to figure out how to get from the customer table to the country.
+
+Looking at the schema, customers have an address_id, which links to the address table. The address table has a city_id, which connects to the city table. Then, the city table has a country_id that points to the country table. So the path is customer -> address -> city -> country.
+
+I need to count how many customers are in each country. So I'll start by joining these tables. The customer table's address_id joins with address.address_id. Then address's city_id joins with city.city_id, and city's country_id joins with country.country_id.
+
+Once all those joins are in place, I can group by country.country_id and country.country, then count the number of customers in each group. The top 10 would be ordered by the count in descending order and limited to 10.
+
+I should make sure to include the country_id and country name in the select statement. Also, since it's a count per country, using COUNT(c.customer_id) makes sense. Need to alias the count as customers for clarity.
+
+Check if there are any potential issues. For example, if a customer's address doesn't have a city or country, but since it's a standard schema, probably all addresses have valid cities and countries. So the joins should be safe.
+
+Putting it all together: SELECT country.country_id, country.country, COUNT(c.customer_id) AS customers... JOINs as per the relationships. Then GROUP BY, ORDER BY customers DESC, LIMIT 10.
+
+Make sure to use table aliases for brevity. Maybe c for customer, a for address, ci for city, co for country. That should make the query readable.
+
+Double-check the foreign key relationships. Yes, customer.address_id -> address.address_id, address.city_id -> city.city_id, city.country_id -> country.country_id. All correct.
+
+So the final SQL should look like:
+
+SELECT co.country_id, co.country, COUNT(c.customer_id) AS customers
+FROM customer c
+JOIN address a ON c.address_id = a.address_id
+JOIN city ci ON a.city_id = ci.city_id
+JOIN country co ON ci.country_id = co.country_id
+GROUP BY co.country_id, co.country
+ORDER BY customers DESC
+LIMIT 10;
+
+That should give the top 10 countries with the","SELECT co.country_id, co.country, COUNT(c.customer_id) AS customers FROM customer c JOIN address a ON a.address_id = c.address_id JOIN city ci ON ci.city_id = a.city_id JOIN country co ON co.country_id = ci.country_id GROUP BY co.country_id, co.country ORDER BY customers DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,dvdrental,actors with most films,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,38.922,0,0,0.0,,,"<think>
+Okay, let's tackle this problem: ""actors with most films."" The user wants to know which actors have appeared in the most films. 
+
+First, I need to figure out which tables are involved. The actor table has actor information, and the film_actor table links actors to films. Each entry in film_actor represents an actor's participation in a film. So, to find out how many films each actor is in, I need to count the number of entries in film_actor for each actor.
+
+The actor table has actor_id, first_name, and last_name. The film_actor table has actor_id as a foreign key. So, I'll need to join these two tables on actor_id. 
+
+The approach is to join actor and film_actor on actor.actor_id = film_actor.actor_id. Then, group by actor.actor_id to aggregate the count of films. The count should be COUNT(film_actor.film_id) since each row in film_actor represents a film-actor relationship. 
+
+I need to select the actor's ID, first name, last name, and the count of films. Then, order the results in descending order of the film count to get the actors with the most films at the top. Finally, limit the results to the top 10 as per the example queries provided earlier.
+
+Wait, the user didn't specify a number, but the examples like ""top 10 customers"" use LIMIT 10. Since the question is ""actors with most films,"" it's safe to assume they want the top ones. The examples show that when it's a top N, the LIMIT is set. Since the user's question here is similar to ""actors with most films,"" the example given in the few-shot list is ""actors with most films"" which uses LIMIT 10. So I should follow that and use LIMIT 10.
+
+Check the schema again. The actor table's primary key is actor_id. The film_actor has actor_id as a foreign key. So joining on those should be correct. 
+
+Also, need to make sure that the COUNT is correct. Each film_actor entry is for a specific film and actor, so counting film_id would give the number of films per actor. 
+
+So the SQL should be:
+
+SELECT a.actor_id, a.first_name, a.last_name, COUNT(fa.film_id) AS film_count
+FROM actor a
+JOIN film_actor fa ON fa.actor_id = a.actor_id
+GROUP BY a.actor_id, a.first_name, a.last_name","SELECT a.actor_id, a.first_name, a.last_name, COUNT(fa.film_id) AS film_count FROM actor a JOIN film_actor fa ON fa.actor_id = a.actor_id GROUP BY a.actor_id, a.first_name, a.last_name ORDER BY film_count DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,dvdrental,films with the highest rental rate,OK,,40.689,0,0,0.0,"SELECT f.film_id, f.title, f.rental_rate
+FROM film f
+ORDER BY f.rental_rate DESC, f.film_id ASC
+LIMIT 10;","SELECT f.film_id, f.title, f.rental_rate FROM film f ORDER BY f.rental_rate DESC, f.film_id ASC LIMIT 10;","SELECT f.film_id, f.title, f.rental_rate
+FROM film f
+ORDER BY f.rental_rate DESC, f.film_id ASC
+LIMIT 10;","SELECT f.film_id, f.title, f.rental_rate FROM film f ORDER BY f.rental_rate DESC, f.film_id ASC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,dvdrental,ratings distribution (count of films per rating),OK,,37.392,0,0,0.0,"SELECT f.rating, COUNT(*) AS film_count
+FROM film f
+GROUP BY f.rating
+ORDER BY film_count DESC
+LIMIT 200;","SELECT f.rating, COUNT(*) AS film_count FROM film f GROUP BY f.rating ORDER BY film_count DESC LIMIT 200;","SELECT f.rating, COUNT(*) AS film_count
+FROM film f
+GROUP BY f.rating
+ORDER BY film_count DESC
+LIMIT 200;","SELECT f.rating, COUNT(*) AS film_count FROM film f GROUP BY f.rating ORDER BY film_count DESC LIMIT 200;",5.0,5.0
+groq-qwen/qwen3-32b,dvdrental,inventory count per film,OK,,37.494,0,0,0.0,"SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+GROUP BY f.film_id, f.title
+ORDER BY inventory_count DESC
+LIMIT 200;","SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count FROM film f JOIN inventory i ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY inventory_count DESC LIMIT 200;","SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+GROUP BY f.film_id, f.title
+ORDER BY inventory_count DESC
+LIMIT 200;","SELECT f.film_id, f.title, COUNT(i.inventory_id) AS inventory_count FROM film f JOIN inventory i ON i.film_id = f.film_id GROUP BY f.film_id, f.title ORDER BY inventory_count DESC LIMIT 200;",200.0,200.0
+groq-qwen/qwen3-32b,dvdrental,payment revenue by month,OK,,37.485,0,0,0.0,"SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY month
+ORDER BY month
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue
+FROM payment p
+GROUP BY month
+ORDER BY month
+LIMIT 200;","SELECT DATE_TRUNC('month', p.payment_date) AS month, SUM(p.amount) AS revenue FROM payment p GROUP BY month ORDER BY month LIMIT 200;",4.0,4.0
+groq-qwen/qwen3-32b,northwind,top 5 customers by total order value,WRONG,,35.561,0,0,0.0,"SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY c.customer_id, c.company_name
+LIMIT 200;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 5;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY c.customer_id, c.company_name","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 5;",89.0,5.0
+groq-qwen/qwen3-32b,northwind,top 10 customers by total order value,OK,,37.243,0,0,0.0,"SELECT c.customer_id, c.company_name, 
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY c.customer_id, c.company_name
+ORDER BY total_value DESC
+LIMIT 10;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 10;","SELECT c.customer_id, c.company_name, 
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY c.customer_id, c.company_name
+ORDER BY total_value DESC
+LIMIT 10;","SELECT c.customer_id, c.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value FROM customers c JOIN orders o ON o.customer_id = c.customer_id JOIN order_details od ON od.order_id = o.order_id GROUP BY c.customer_id, c.company_name ORDER BY total_value DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,northwind,customers with no orders,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,35.761,0,0,0.0,,,"<think>
+Okay, let's tackle this problem: ""customers with no orders"". The user wants to find all customers who haven't placed any orders. 
+
+First, I need to look at the schema provided. The relevant tables here are customers and orders. The customers table has a customer_id, and the orders table has a customer_id as a foreign key. 
+
+The standard approach for finding entities with no related records is to use a LEFT JOIN and check for NULLs in the joined table. So, I'll start by selecting from the customers table and left joining with the orders table on customer_id. 
+
+Wait, the foreign key in the orders table is customer_id, which references customers.customer_id. So the join condition should be customers.customer_id = orders.customer_id. 
+
+After performing the left join, customers who have no orders will have all orders table columns as NULL. Therefore, the WHERE clause should check for orders.order_id IS NULL. 
+
+But wait, the orders table's primary key is order_id. So if there's no order, order_id would be NULL. That makes sense. 
+
+Now, the user wants to list these customers. According to the rules, when listing entities, include their primary key ID. For customers, that's customer_id. Also, maybe include company_name for identification. 
+
+So the SQL should select customer_id and company_name from customers, left join orders on customer_id, where order_id is null. Then order by customer_id and limit as per guardrails. 
+
+Check the schema again to confirm the column names. Yes, customers have customer_id and company_name. Orders have order_id. 
+
+I need to qualify columns with table aliases. So in the WHERE clause, it's o.order_id IS NULL. 
+
+The final query would be:
+
+SELECT c.customer_id, c.company_name
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id
+WHERE o.order_id IS NULL
+ORDER BY c.customer_id
+LIMIT 200;
+
+Wait, the default limit is 200 as per the examples. The user didn't specify a number, so using the default. 
+
+But let me check the example queries. For instance, in ""customers with no orders"" the example uses LIMIT 200. So yes, that's correct. 
+
+Also, make sure that the join is a LEFT JOIN. Using just JOIN would exclude the customers with no orders. So LEFT JOIN is necessary here. 
+
+Yes, that seems right. Let me make sure there are","SELECT c.customer_id, c.company_name FROM customers c LEFT JOIN orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL ORDER BY c.customer_id LIMIT 200;",,
+groq-qwen/qwen3-32b,northwind,revenue by country (ship_country),FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,37.887,0,0,0.0,,,"<think>
+Okay, let's tackle this user question: ""revenue by country (ship_country)"". The user wants to know the total revenue broken down by the shipping country.
+
+First, I need to recall the schema context provided. The relevant tables here are orders and order_details. The orders table has a ship_country column, and the order_details table contains unit_price, quantity, and discount. To calculate revenue, I need to join these two tables on order_id.
+
+The formula for revenue is unit_price * quantity * (1 - discount). So, I'll need to multiply those columns from the order_details table. Then, group the results by ship_country from the orders table.
+
+I should start by joining orders with order_details using their foreign key relationship. The join condition is orders.order_id = order_details.order_id. Once joined, I can aggregate the revenue calculation.
+
+The SQL query will select ship_country from orders and compute the sum of (unit_price * quantity * (1 - discount)) as revenue. Grouping is done by ship_country. Also, the user might want the results ordered by revenue in descending order to see the top countries first. Including an ORDER BY clause makes sense here. The LIMIT is set to 200 as per the guardrails unless specified otherwise, but since the user didn't mention a limit, but the example queries include LIMIT 200 for similar cases, I'll follow that.
+
+Wait, the user didn't specify a limit, but the examples show that when returning rows, a LIMIT is always included. Since the question is about revenue by country, there's no explicit top N, but the examples show that even for such cases, a LIMIT is added. However, looking at the example for ""revenue by country (ship_country)"", the SQL includes LIMIT 200. So I should include that.
+
+Putting it all together: SELECT o.ship_country, SUM(...) as revenue FROM orders o JOIN order_details od ON o.order_id = od.order_id GROUP BY o.ship_country ORDER BY revenue DESC LIMIT 200.
+
+I need to make sure that the columns are correctly qualified with table aliases. Also, check if there are any other tables involved, but in this case, it's just orders and order_details. No need for other joins like customers or products here. The foreign key between orders and order_details is already established, so that's sufficient.
+
+Double-checking the schema: orders.order_id is a smallint and is the primary key, order_details.order_id is a foreign","SELECT o.ship_country AS country, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.ship_country ORDER BY revenue DESC LIMIT 200;",,
+groq-qwen/qwen3-32b,northwind,monthly revenue trend (by order_date),FAIL_EXEC_PRED,"missing FROM-clause entry for table ""o""
+LINE 1: SELECT DATE_TRUNC('month', o.order_date) AS month,
+                                   ^
+",36.922,0,0,0.0,"SELECT DATE_TRUNC('month', o.order_date) AS month,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+LIMIT 200;","SELECT DATE_TRUNC('month', o.order_date) AS month, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY month ORDER BY month LIMIT 200;","SELECT DATE_TRUNC('month', o.order_date) AS month,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue","SELECT DATE_TRUNC('month', o.order_date) AS month, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY month ORDER BY month LIMIT 200;",,
+groq-qwen/qwen3-32b,northwind,yearly revenue trend (by order_date),OK,,37.729,0,0,0.0,"SELECT DATE_TRUNC('year', o.order_date) AS year,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY year
+ORDER BY year
+LIMIT 200;","SELECT DATE_TRUNC('year', o.order_date) AS year, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY year ORDER BY year LIMIT 200;","SELECT DATE_TRUNC('year', o.order_date) AS year,
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM orders o
+JOIN order_details od ON od.order_id = o.order_id
+GROUP BY year
+ORDER BY year
+LIMIT 200;","SELECT DATE_TRUNC('year', o.order_date) AS year, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY year ORDER BY year LIMIT 200;",3.0,3.0
+groq-qwen/qwen3-32b,northwind,top selling products by quantity,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,36.783,0,0,0.0,,,"<think>
+Okay, let's see. The user wants the top selling products by quantity. So I need to find which products have been ordered the most in terms of quantity.
+
+First, I remember that the products are in the products table, and the order details are in order_details. The quantity sold per product would be in the order_details table, right? Each entry there has a product_id and a quantity.
+
+So I need to join products with order_details on product_id. Then, sum up the quantity for each product. The products table has product_id and product_name, which I should include in the result.
+
+Wait, the user said ""top selling by quantity,"" so the total quantity sold for each product. Then group by product_id and product_name. Then order by the total quantity in descending order. And since they want the top, probably the top 10, but the question doesn't specify a number. But the examples show that when it's ""top"" without a number, sometimes they use LIMIT 10. Let me check the examples again.
+
+Looking back, the example for ""top selling products by quantity"" uses LIMIT 10. So maybe I should do the same. The user's question here is similar to that example. So I should use LIMIT 10.
+
+So the SQL would select product_id, product_name from products, join with order_details on product_id, sum the quantity, group by product_id and product_name, order by sum descending, limit 10.
+
+Wait, the products table's primary key is product_id, and the order_details have product_id as a foreign key. So the join is correct. Also, need to make sure that the quantity is summed correctly. The quantity is in order_details.quantity. So the sum is SUM(od.quantity).
+
+Yes, that makes sense. Let me make sure there are no other tables involved. The example given for top selling products by quantity uses products and order_details, so that's correct.
+
+So the final SQL should be:
+
+SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty
+FROM products p
+JOIN order_details od ON od.product_id = p.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY total_qty DESC
+LIMIT 10;
+
+That should do it. Let me check the schema again to confirm the column names. The products table has product_id and product_name. The order_details have product_id and quantity. Yes, that's correct. The foreign key is in order","SELECT p.product_id, p.product_name, SUM(od.quantity) AS total_qty FROM products p JOIN order_details od ON od.product_id = p.product_id GROUP BY p.product_id, p.product_name ORDER BY total_qty DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,northwind,top selling products by revenue,OK,,38.396,0,0,0.0,"SELECT p.product_id, p.product_name, 
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM products p
+JOIN order_details od ON od.product_id = p.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY revenue DESC
+LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM products p JOIN order_details od ON od.product_id = p.product_id GROUP BY p.product_id, p.product_name ORDER BY revenue DESC LIMIT 10;","SELECT p.product_id, p.product_name, 
+       SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue
+FROM products p
+JOIN order_details od ON od.product_id = p.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY revenue DESC
+LIMIT 10;","SELECT p.product_id, p.product_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS revenue FROM products p JOIN order_details od ON od.product_id = p.product_id GROUP BY p.product_id, p.product_name ORDER BY revenue DESC LIMIT 10;",10.0,10.0
+groq-qwen/qwen3-32b,northwind,top categories by sales,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,36.727,0,0,0.0,,,"<think>
+Okay, let's tackle this query. The user wants the top categories by sales. From the schema, I know that sales are calculated using the unit_price, quantity, and discount from the order_details table. 
+
+First, I need to connect categories to products. The products table has a category_id that links to categories.category_id. Then, products are connected to order_details via product_id. 
+
+So the path is categories -> products -> order_details. 
+
+I'll start by joining categories with products on category_id. Then join products with order_details on product_id. 
+
+Once those tables are joined, I can calculate the sales for each category. The sales formula is unit_price * quantity * (1 - discount). I need to sum this value for each category.
+
+Grouping by category_id and category_name makes sense here. Then order by the total sales in descending order. The user didn't specify a limit, but the rules say to include a LIMIT. Since it's top categories, maybe default to 10 unless stated. But the user's example for top 5 customers uses LIMIT 5, so maybe the default is 10. Wait, the user's instruction says to always include LIMIT when returning rows, and guardrails will enforce a default. But the example for ""top categories by sales"" isn't given. However, in the examples, when the question is ""top N"", they set LIMIT N. Since the user's question is ""top categories"" without a number, perhaps the default is 10? Or maybe the assistant should assume a reasonable number like 10. Let me check the examples again. For instance, ""top 5 customers"" uses LIMIT 5, ""top 10 customers"" uses LIMIT 10. The question here is just ""top categories"", so maybe the assistant should pick a default, perhaps 10 as in other examples. 
+
+So the SQL would select category_id and category_name from categories, join with products on category_id, then join with order_details on product_id. Sum the sales, group by category, order by total sales descending, and limit to 10.
+
+Wait, but the products might have multiple entries in order_details. So each product's sales contribute to its category. So the join between products and order_details is correct. 
+
+Let me make sure about the joins. Categories to products is straightforward. Products to order_details is via product_id. 
+
+Yes. Then the calculation is SUM(od.unit_price * od.quantity * (","SELECT cat.category_id, cat.category_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM categories cat JOIN products p ON p.category_id = cat.category_id JOIN order_details od ON od.product_id = p.product_id GROUP BY cat.category_id, cat.category_name ORDER BY sales DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,northwind,top 5 suppliers by sales,OK,,37.674,0,0,0.0,"SELECT s.supplier_id, s.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+FROM suppliers s
+JOIN products p ON p.supplier_id = s.supplier_id
+JOIN order_details od ON od.product_id = p.product_id
+GROUP BY s.supplier_id, s.company_name
+ORDER BY sales DESC
+LIMIT 5;","SELECT s.supplier_id, s.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM suppliers s JOIN products p ON p.supplier_id = s.supplier_id JOIN order_details od ON od.product_id = p.product_id GROUP BY s.supplier_id, s.company_name ORDER BY sales DESC LIMIT 5;","SELECT s.supplier_id, s.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales
+FROM suppliers s
+JOIN products p ON p.supplier_id = s.supplier_id
+JOIN order_details od ON od.product_id = p.product_id
+GROUP BY s.supplier_id, s.company_name
+ORDER BY sales DESC
+LIMIT 5;","SELECT s.supplier_id, s.company_name, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS sales FROM suppliers s JOIN products p ON p.supplier_id = s.supplier_id JOIN order_details od ON od.product_id = p.product_id GROUP BY s.supplier_id, s.company_name ORDER BY sales DESC LIMIT 5;",5.0,5.0
+groq-qwen/qwen3-32b,northwind,most used shipper,OK,,36.536,0,0,0.0,"SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped
+FROM shippers sh
+JOIN orders o ON o.ship_via = sh.shipper_id
+GROUP BY sh.shipper_id, sh.company_name
+ORDER BY orders_shipped DESC
+LIMIT 1;","SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped FROM shippers sh JOIN orders o ON o.ship_via = sh.shipper_id GROUP BY sh.shipper_id, sh.company_name ORDER BY orders_shipped DESC LIMIT 1;","SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped
+FROM shippers sh
+JOIN orders o ON o.ship_via = sh.shipper_id
+GROUP BY sh.shipper_id, sh.company_name
+ORDER BY orders_shipped DESC
+LIMIT 1;","SELECT sh.shipper_id, sh.company_name, COUNT(o.order_id) AS orders_shipped FROM shippers sh JOIN orders o ON o.ship_via = sh.shipper_id GROUP BY sh.shipper_id, sh.company_name ORDER BY orders_shipped DESC LIMIT 1;",1.0,1.0
+groq-qwen/qwen3-32b,northwind,orders per employee,OK,,36.77,0,0,0.0,"SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count
+FROM employees e
+JOIN orders o ON o.employee_id = e.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY orders_count DESC
+LIMIT 200;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC LIMIT 200;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count
+FROM employees e
+JOIN orders o ON o.employee_id = e.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY orders_count DESC
+LIMIT 200;","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC LIMIT 200;",9.0,9.0
+groq-qwen/qwen3-32b,northwind,top 5 employees by order count,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,36.777,0,0,0.0,,,"<think>
+Okay, let's tackle this query. The user wants the top 5 employees by order count. So first, I need to figure out how to count the number of orders each employee has handled.
+
+Looking at the schema, there's an 'employees' table and an 'orders' table. The 'orders' table has an 'employee_id' that foreign keys to 'employees.employee_id'. So the plan is to join these two tables on employee_id, group by the employee's ID and their name, then count the orders per employee.
+
+Wait, the 'orders' table's 'employee_id' is a smallint, and the 'employees' table has 'employee_id' as smallint as well. So the join is straightforward. 
+
+I need to select the employee's ID, their name (probably first and last name), and count the number of orders. The SQL structure would be something like:
+
+SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS order_count
+FROM employees e
+JOIN orders o ON e.employee_id = o.employee_id
+GROUP BY e.employee_id, e.first_name, e.last_name
+ORDER BY order_count DESC
+LIMIT 5;
+
+But wait, do I need to include all columns in the GROUP BY? Since employee_id is the primary key, and first_name and last_name are likely unique per employee, grouping by all three should be safe. But in PostgreSQL, when using GROUP BY, any column in the SELECT that isn't aggregated must be in the GROUP BY clause. So yes, including all three is necessary.
+
+Let me check if there are any other tables involved. The relationships mention 'employee_territories', but that's for territories, which isn't needed here. The user just wants order count per employee, so the direct join between employees and orders is sufficient.
+
+Also, need to make sure that employees with no orders are excluded. But since we're using an INNER JOIN, only employees with orders will be counted. If there's an employee with no orders, they won't appear, which is correct for this query.
+
+Testing for possible errors: What if two employees have the same first and last name? But since employee_id is unique, including it in the GROUP BY ensures they are treated as separate. So the query should work.
+
+Now, applying the rules: Include the employee_id, which is required. Order by order_count descending, limit to 5. The SQL should look like the example for top 5 employees by order","SELECT e.employee_id, e.first_name, e.last_name, COUNT(o.order_id) AS orders_count FROM employees e JOIN orders o ON o.employee_id = e.employee_id GROUP BY e.employee_id, e.first_name, e.last_name ORDER BY orders_count DESC LIMIT 5;",,
+groq-qwen/qwen3-32b,northwind,average order value,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,39.789,0,0,0.0,,,"<think>
+Okay, let's tackle this ""average order value"" question. First, I need to recall how the order value is calculated. From the domain glossary, sales or revenue is calculated as unit_price multiplied by quantity and then multiplied by (1 - discount). That's for each order detail.
+
+But the user wants the average order value. So I need to get the total value for each order first, then compute the average of those totals. 
+
+The steps would be: For each order, sum up (unit_price * quantity * (1 - discount)) from the order_details. Then take the average of those summed values. 
+
+Looking at the tables, orders are in the orders table, and order_details has the line items. So I need to join orders with order_details on order_id. Then group by order_id to get each order's total. Once I have all the order totals, compute the average.
+
+But since it's an average of order totals, I can use a subquery. The subquery groups by order_id and calculates each order's total. Then the outer query takes the average of those totals. 
+
+The tables involved are orders and order_details. The join is on orders.order_id = order_details.order_id. 
+
+In the subquery, select order_id, sum(unit_price * quantity * (1 - discount)) as order_total. Group by order_id. Then in the outer query, select AVG(order_total) as avg_order_value.
+
+I need to make sure that all the columns used exist in the schema. The orders table has order_id, and order_details has unit_price, quantity, discount. Yes, those columns are present.
+
+Also, the user mentioned that if the question is a single-value metric, return one row with an aggregate. Since this is an average, it's a single value, so the query should return just one row with the average.
+
+No need for a GROUP BY in the outer query. Just a simple AVG() of the subquery's results. Also, include LIMIT 1 to comply with the guardrails, even though it's not necessary here because the average is a single row.
+
+Putting it all together, the SQL should look like:
+
+SELECT AVG(order_total) AS avg_order_value
+FROM (
+  SELECT o.order_id,
+    SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total
+  FROM orders o
+  JOIN order_details od ON od.order_id = o.order_id
+  GROUP BY o.order_id
+) t
+LIMIT","SELECT AVG(order_total) AS avg_order_value FROM (SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id) t LIMIT 200;",,
+groq-qwen/qwen3-32b,northwind,top 10 orders by total value,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,36.813,0,0,0.0,,,"<think>
+Okay, let's tackle this user question: ""top 10 orders by total value"". 
+
+First, I need to recall the schema context provided. The main tables involved here are orders and order_details. The order_details table has unit_price, quantity, and discount, which are essential for calculating the total value. The orders table has order_id, which is the primary key and needs to be joined with order_details.
+
+The user wants the top 10 orders, so I need to calculate the total value for each order. The formula for sales is given in the domain glossary as unit_price * quantity * (1 - discount). So, I'll need to sum this calculation for each order_id in the order_details table.
+
+Next, I have to join the orders and order_details tables. The foreign key relationship is order_details.order_id -> orders.order_id. So, I'll perform an INNER JOIN (assuming all orders have details, but maybe a LEFT JOIN would be safer? However, since the order_details have order_id as a foreign key, it's likely that each order has at least one detail, so INNER is okay here).
+
+Grouping by order_id is necessary to aggregate the total value per order. Then, ordering by the total value in descending order and limiting to 10 results.
+
+I should select the order_id from the orders table and calculate the total. Wait, but the orders table might have other columns like customer_id or order_date that the user might want, but the question just asks for the top 10 orders by total value. The user didn't specify additional columns, so just the order_id and the calculated total. However, looking at previous examples, like the ""top 10 orders by total value"" example, they include the order_id and the order_total. So following that example, I should include the order_id and the sum.
+
+Wait, the user's question is to list the top 10 orders by total value. So the SQL should select order_id and the computed total, group by order_id, order by total descending, limit 10.
+
+Let me check the columns again. The orders table has order_id as a smallint. The order_details have order_id as a smallint as well. The join is straightforward.
+
+So the SQL would be:
+
+SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS total_value
+FROM orders o
+JOIN order_details od ON o.order_id = od.order_id
+GROUP","SELECT o.order_id, SUM(od.unit_price * od.quantity * (1 - od.discount)) AS order_total FROM orders o JOIN order_details od ON od.order_id = o.order_id GROUP BY o.order_id ORDER BY order_total DESC LIMIT 10;",,
+groq-qwen/qwen3-32b,northwind,top 5 customers by number of orders,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,32.707,0,0,0.0,,,"<think>
+Okay, let's tackle this query. The user wants the top 5 customers by the number of orders. First, I need to figure out which tables to use. The customers and orders tables are definitely involved because we need customer info and their orders.
+
+Looking at the schema, the orders table has a customer_id that links to customers.customer_id. So I'll need to join these two tables on customer_id. 
+
+The goal is to count how many orders each customer has. So I'll use a COUNT on the orders, grouping by customer. But the user also wants the customer's name or company name, so I need to include that in the SELECT and GROUP BY clauses. 
+
+Wait, the customers table has company_name, which is probably what we should display. So the SQL should select customer_id, company_name, and count the orders. Then group by both customer_id and company_name to avoid duplicates. 
+
+Ordering by the count in descending order will get the top customers. Then LIMIT 5 to restrict to the top 5. 
+
+I need to make sure I'm using the correct column names. The customers table has customer_id (varchar) and company_name. The orders table has customer_id as well. The join is straightforward: customers.customer_id = orders.customer_id. 
+
+No other tables are needed here since it's just about customers and their order counts. Also, no need for order_details because we're not calculating revenue or anything else that requires product details. 
+
+Let me check if there are any edge cases. What if a customer has zero orders? But the question is about top customers by number of orders, so customers with zero wouldn't be included. Using a LEFT JOIN might include them, but since we're counting orders, those with zero would have a count of zero. However, the top 5 would likely exclude them unless they are part of the highest counts. But the question probably wants customers who have placed orders, so an INNER JOIN is appropriate here. 
+
+So the SQL should be:
+
+SELECT c.customer_id, c.company_name, COUNT(o.order_id) AS orders_count
+FROM customers c
+JOIN orders o ON o.customer_id = c.customer_id
+GROUP BY c.customer_id, c.company_name
+ORDER BY orders_count DESC
+LIMIT 5;
+
+That should do it. Let me verify the column names and table aliases again. Yes, customer_id is in both tables, and order_id is in orders. Using COUNT(o.order_id) is correct. The GROUP BY includes both customer","SELECT c.customer_id, c.company_name, COUNT(o.order_id) AS orders_count FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id, c.company_name ORDER BY orders_count DESC LIMIT 5;",,
+groq-qwen/qwen3-32b,northwind,customers who placed exactly 1 order,WRONG,,39.721,0,0,0.0,"SELECT
+LIMIT 200;","SELECT c.customer_id, c.company_name FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id, c.company_name HAVING COUNT(o.order_id) = 1 ORDER BY c.customer_id LIMIT 200;",SELECT,"SELECT c.customer_id, c.company_name FROM customers c JOIN orders o ON o.customer_id = c.customer_id GROUP BY c.customer_id, c.company_name HAVING COUNT(o.order_id) = 1 ORDER BY c.customer_id LIMIT 200;",1.0,1.0
+groq-qwen/qwen3-32b,northwind,products never ordered,FAIL_GENERATE_OR_GUARDRAIL,Guardrails: rejected (must be SELECT/WITH only; no DDL/DML; single statement).,36.609,0,0,0.0,,,"<think>
+Okay, let's tackle the user's question: ""products never ordered"". The user wants to find products that have never been ordered. 
+
+First, I need to look at the schema context provided. The relevant tables here are products and order_details. The products table has a product_id, and order_details has product_id as a foreign key. 
+
+The goal is to find products that don't appear in the order_details table. That typically involves a LEFT JOIN between products and order_details on product_id, then checking where order_details.product_id is NULL. However, since order_details has a foreign key to products, if a product has never been ordered, there would be no corresponding entries in order_details. 
+
+So the approach would be to perform a LEFT JOIN from products to order_details. Then, filter where the order_details' product_id is NULL. But wait, in PostgreSQL, when you do a LEFT JOIN, if there's no matching row in the right table, the columns from the right table will be NULL. So checking for order_details.product_id IS NULL would correctly identify products that have no orders.
+
+But I should make sure that the join condition is correct. The products.product_id should be joined with order_details.product_id. 
+
+Looking at the schema, the products table has a product_id (smallint), and order_details also has product_id (smallint). The foreign key is set up correctly. 
+
+So the SQL query would select product_id and product_name from products, left join with order_details on product_id, then where order_details.product_id is null. 
+
+Also, according to the rules, I need to include the primary key ID column, which for products is product_id. And order by product_id as per the example for ""customers who placed exactly 1 order"", which uses ORDER BY c.customer_id. 
+
+The user might want to limit the results, so adding LIMIT 200 as seen in other examples. 
+
+Wait, the user didn't specify a limit, but the hard rules say to always include LIMIT. The examples show LIMIT 200 when not specified. For example, the ""customers with no orders"" query uses LIMIT 200. So I should include LIMIT 200 here as well.
+
+Putting it all together:
+
+SELECT p.product_id, p.product_name
+FROM products p
+LEFT JOIN order_details od ON od.product_id = p.product_id
+WHERE od.product_id IS NULL
+ORDER BY p.product_id
+LIMIT 200;
+
+But wait,","SELECT p.product_id, p.product_name FROM products p LEFT JOIN order_details od ON od.product_id = p.product_id WHERE od.order_id IS NULL ORDER BY p.product_id LIMIT 200;",,
+groq-qwen/qwen3-32b,northwind,products that are discontinued,OK,,37.52,0,0,0.0,"SELECT p.product_id, p.product_name
+FROM products p
+WHERE p.discontinued = 1
+ORDER BY p.product_id
+LIMIT 200;","SELECT p.product_id, p.product_name FROM products p WHERE p.discontinued = 1 ORDER BY p.product_id LIMIT 200;","SELECT p.product_id, p.product_name
+FROM products p
+WHERE p.discontinued = 1
+ORDER BY p.product_id
+LIMIT 200;","SELECT p.product_id, p.product_name FROM products p WHERE p.discontinued = 1 ORDER BY p.product_id LIMIT 200;",10.0,10.0

@@ -1,0 +1,44 @@
+# .dockerignore — keep the Docker build context lean
+
+# Git
+.git/
+.gitignore
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Chroma index (rebuilt inside container on first boot)
+data/chroma/
+
+# Keep data/sql — needed by postgres.Dockerfile to seed databases
+# (do NOT add data/sql here)
+
+# Secrets
+.env
+
+# Dev tooling
+.idea/
+.vscode/
+*.log
+.DS_Store
+
+# Test artifacts
+.pytest_cache/
+pytest-cache-files*/
+htmlcov/
+.coverage
+
+# Jupyter
+*.ipynb
+.ipynb_checkpoints/
