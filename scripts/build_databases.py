@@ -910,7 +910,10 @@ def main() -> None:
     if "nyc311" in only:
         build_nyc_311()
     if "olist" in only:
-        build_olist()
+        ok = build_olist()
+        if not ok:
+            print("\n  ✗  Olist build failed — exiting with code 1", file=sys.stderr)
+            sys.exit(1)
     if "synthea" in only:
         build_synthea()
 

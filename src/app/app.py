@@ -54,27 +54,50 @@ def _ensure_chroma_index() -> None:
 def _ensure_olist_db() -> None:
     """
     On HF Spaces: try to build olist_ecommerce.db at runtime using Kaggle credentials.
-    Silently skips if KAGGLE_USERNAME / KAGGLE_KEY secrets are not set.
+    Silently skips if no Kaggle secret is set.
     """
     olist_path = Path("data/sqlite/olist_ecommerce.db")
     if olist_path.exists() and olist_path.stat().st_size > 1_000_000:
         return  # already built
+
+    # Avoid duplicate builds within the same session
+    if st.session_state.get("_olist_build_done"):
+        return
+
     api_token = os.getenv("KAGGLE_API_TOKEN")          # new single-token style (KGAT_...)
     username  = os.getenv("KAGGLE_USERNAME")
     key       = os.getenv("KAGGLE_KEY") or os.getenv("KAGGLE_API_KEY")
     if not api_token and not (username and key):
         return  # no credentials — skip silently
+
+    st.session_state["_olist_build_done"] = True  # set before run to prevent re-entry
     try:
         import subprocess
-        with st.spinner("⏳ Downloading Olist database (first boot — ~3 min)..."):
+        with st.spinner("⏳ Downloading Olist database (first boot — ~5 min)..."):
             result = subprocess.run(
                 [sys.executable, "scripts/build_databases.py", "--only", "olist"],
-                capture_output=True, text=True, timeout=600,
+                capture_output=True, text=True, timeout=660,
             )
+        combined = (result.stdout + "\n" + result.stderr).strip()
         if result.returncode != 0:
-            st.warning(f"Olist DB build failed:\n{result.stderr[:300]}")
+            st.warning(
+                f"⚠️ Olist DB build failed (exit {result.returncode}):\n\n"
+                f"```\n{combined[-800:]}\n```"
+            )
+        else:
+            # Verify the file was actually created
+            if olist_path.exists() and olist_path.stat().st_size > 1_000_000:
+                st.success("✅ Olist database built successfully — reloading...")
+                st.rerun()
+            else:
+                st.warning(
+                    f"⚠️ Olist build script exited 0 but DB file not found.\n\n"
+                    f"```\n{combined[-800:]}\n```"
+                )
+    except subprocess.TimeoutExpired:
+        st.warning("⚠️ Olist DB build timed out after 11 min. Try a factory reboot.")
     except Exception as e:
-        st.warning(f"Olist DB build error: {e}")
+        st.warning(f"⚠️ Olist DB build error: {e}")
 
 
 def _available_domains() -> list[str]:
