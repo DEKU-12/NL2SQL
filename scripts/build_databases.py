@@ -473,29 +473,46 @@ def _find_olist_csv(name: str) -> Path | None:
 def _download_olist_kaggle() -> bool:
     """
     Download Olist CSVs using the Kaggle API if credentials are available.
-    Credentials are read from env vars KAGGLE_USERNAME + KAGGLE_KEY (or KAGGLE_API_KEY).
+
+    Supports both auth styles:
+      New-style:  KAGGLE_API_TOKEN=KGAT_...   (single token, kaggle>=1.6)
+      Old-style:  KAGGLE_USERNAME + KAGGLE_KEY (username + api key from kaggle.json)
+
     Returns True if the download succeeded.
     """
-    username = os.getenv("KAGGLE_USERNAME")
-    key      = os.getenv("KAGGLE_KEY") or os.getenv("KAGGLE_API_KEY")
-    if not username or not key:
+    api_token = os.getenv("KAGGLE_API_TOKEN")           # new single-token style
+    username  = os.getenv("KAGGLE_USERNAME")
+    key       = os.getenv("KAGGLE_KEY") or os.getenv("KAGGLE_API_KEY")
+
+    if not api_token and not (username and key):
         return False
 
-    _info("KAGGLE_USERNAME + KAGGLE_KEY detected — attempting auto-download ...")
-
-    # Write ~/.kaggle/kaggle.json (required by kaggle CLI)
-    kaggle_dir  = Path.home() / ".kaggle"
+    kaggle_dir = Path.home() / ".kaggle"
     kaggle_dir.mkdir(exist_ok=True)
-    kaggle_json = kaggle_dir / "kaggle.json"
-    kaggle_json.write_text(json.dumps({"username": username, "key": key}))
-    kaggle_json.chmod(0o600)
+
+    if api_token:
+        _info("KAGGLE_API_TOKEN detected — attempting auto-download ...")
+        # New-style: write token to access_token file (kaggle>=1.6)
+        token_file = kaggle_dir / "access_token"
+        token_file.write_text(api_token)
+        token_file.chmod(0o600)
+    else:
+        _info("KAGGLE_USERNAME + KAGGLE_KEY detected — attempting auto-download ...")
+        # Old-style: write kaggle.json
+        kaggle_json = kaggle_dir / "kaggle.json"
+        kaggle_json.write_text(json.dumps({"username": username, "key": key}))
+        kaggle_json.chmod(0o600)
+
+    env = {**os.environ}
+    if api_token:
+        env["KAGGLE_API_TOKEN"] = api_token
 
     print("  ↓  Running: kaggle datasets download -d olistbr/brazilian-ecommerce ...")
     result = subprocess.run(
         [sys.executable, "-m", "kaggle", "datasets", "download",
          "-d", "olistbr/brazilian-ecommerce",
          "-p", str(OLIST_DIR), "--unzip"],
-        capture_output=True, text=True, timeout=300,
+        capture_output=True, text=True, timeout=300, env=env,
     )
     if result.returncode != 0:
         _warn(f"Kaggle download failed:\n{result.stderr[:400]}")

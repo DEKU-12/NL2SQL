@@ -59,9 +59,10 @@ def _ensure_olist_db() -> None:
     olist_path = Path("data/sqlite/olist_ecommerce.db")
     if olist_path.exists() and olist_path.stat().st_size > 1_000_000:
         return  # already built
-    username = os.getenv("KAGGLE_USERNAME")
-    key      = os.getenv("KAGGLE_KEY") or os.getenv("KAGGLE_API_KEY")
-    if not username or not key:
+    api_token = os.getenv("KAGGLE_API_TOKEN")          # new single-token style (KGAT_...)
+    username  = os.getenv("KAGGLE_USERNAME")
+    key       = os.getenv("KAGGLE_KEY") or os.getenv("KAGGLE_API_KEY")
+    if not api_token and not (username and key):
         return  # no credentials — skip silently
     try:
         import subprocess
@@ -178,7 +179,7 @@ def main():
         st.caption(DOMAIN_DESCRIPTIONS.get(domain, ""))
         if _HF_MODE and len(avail_domains) < len(DOMAINS):
             missing = [DOMAIN_LABELS[d] for d in DOMAINS if d not in avail_domains]
-            st.caption(f"⚠️ Unavailable: {', '.join(missing)} — add KAGGLE_USERNAME + KAGGLE_KEY Secrets to enable.")
+            st.caption(f"⚠️ Unavailable: {', '.join(missing)} — add KAGGLE_API_TOKEN Secret to enable.")
 
         k = st.slider("Top-K schema chunks", 3, 20, 15)
 
