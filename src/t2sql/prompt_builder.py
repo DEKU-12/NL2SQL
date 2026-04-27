@@ -35,38 +35,47 @@ SELECT 'INSUFFICIENT_SCHEMA' AS error;
 
 def domain_glossary(domain: str) -> str:
     d = domain.lower()
-    if d == "chinook":
-        return """Domain Glossary (Chinook):
-- spend / customer spend / revenue: invoice.total
-- sales: invoice_line.unit_price * invoice_line.quantity
-- common joins:
-  invoice.customer_id = customer.customer_id
-  invoice.invoice_id = invoice_line.invoice_id
-  invoice_line.track_id = track.track_id
-  track.album_id = album.album_id
-  album.artist_id = artist.artist_id
+    if d == "nyc_311":
+        return """Domain Glossary (NYC 311):
+- all data lives in a single table: nyc_311
+- resolution time in days: JULIANDAY(closed_date) - JULIANDAY(created_date)
+- open complaints: status = 'Open' OR closed_date IS NULL
+- weekend vs weekday: use STRFTIME('%w', created_date) — 0=Sunday, 6=Saturday
+- boroughs: 'BROOKLYN', 'MANHATTAN', 'QUEENS', 'BRONX', 'STATEN ISLAND'
+- year/month filtering: use STRFTIME('%Y', created_date) and STRFTIME('%m', created_date)
 
 """
-    if d == "dvdrental":
-        return """Domain Glossary (DVDRental):
-- revenue: payment.amount
-- rentals: COUNT(rental.rental_id)
+    if d == "olist_ecommerce":
+        return """Domain Glossary (Olist E-Commerce):
+- revenue / order value: SUM(order_items.price)
+- freight: order_items.freight_value
+- delivery time in days: JULIANDAY(order_delivered_customer_date) - JULIANDAY(order_purchase_timestamp)
+- late delivery: order_delivered_customer_date > order_estimated_delivery_date
 - common joins:
-  rental.inventory_id = inventory.inventory_id
-  inventory.film_id = film.film_id
-  payment.customer_id = customer.customer_id
-  customer.address_id -> address.city_id -> city.country_id -> country.country_id
-
-"""
-    if d == "northwind":
-        return """Domain Glossary (Northwind):
-- sales / revenue / order value: order_details.unit_price * order_details.quantity * (1 - order_details.discount)
-- common joins:
-  orders.order_id = order_details.order_id
   orders.customer_id = customers.customer_id
-  order_details.product_id = products.product_id
-  products.category_id = categories.category_id
-  products.supplier_id = suppliers.supplier_id
+  orders.order_id = order_items.order_id
+  orders.order_id = order_payments.order_id
+  orders.order_id = order_reviews.order_id
+  order_items.product_id = products.product_id
+  order_items.seller_id = sellers.seller_id
+- year/month filtering: use STRFTIME('%Y', order_purchase_timestamp)
+
+"""
+    if d == "synthea_patients":
+        return """Domain Glossary (Synthea Healthcare):
+- patient age: CAST((JULIANDAY('now') - JULIANDAY(birthdate)) / 365.25 AS INTEGER)
+- deceased patients: deathdate IS NOT NULL
+- encounter cost: encounters.total_claim_cost
+- payer coverage %: encounters.payer_coverage / encounters.total_claim_cost * 100
+- common joins:
+  encounters.patient = patients.id
+  conditions.patient = patients.id
+  conditions.encounter = encounters.id
+  medications.patient = patients.id
+  medications.encounter = encounters.id
+  procedures.patient = patients.id
+  procedures.encounter = encounters.id
+  allergies.patient = patients.id
 
 """
     return ""
@@ -85,6 +94,9 @@ def looks_scalar(question: str) -> bool:
     ]
     if "top " in q:
         return False
+    # "average X by Y", "total X by Y", etc. → GROUP BY result, not scalar
+    if re.search(r"\bby\s+\w", q):
+        return False
     return any(m in q for m in scalar_markers)
 
 
@@ -93,14 +105,13 @@ def extra_guidance(domain: str, question: str) -> str:
 
     tips.append(
         "When listing entities, always include their ID column:\n"
+        "- complaints (nyc_311) -> unique_key\n"
+        "- orders -> order_id\n"
         "- customers -> customer_id\n"
-        "- films -> film_id\n"
-        "- albums -> album_id\n"
-        "- artists -> artist_id\n"
-        "- categories -> category_id\n"
-        "- employees/staff -> employee_id/staff_id\n"
         "- products -> product_id\n"
-        "- suppliers -> supplier_id"
+        "- sellers -> seller_id\n"
+        "- patients -> id\n"
+        "- encounters -> id"
     )
 
     n = detect_top_n(question)

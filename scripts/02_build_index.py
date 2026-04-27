@@ -1,13 +1,16 @@
 # scripts/02_build_index.py
 from __future__ import annotations
-import argparse
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import argparse
 from src.rag.build_index import build_domain_index
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--domain", type=str, default=None, help="e.g. chinook")
+    ap.add_argument("--domain", type=str, default=None, help="e.g. nyc_311")
     ap.add_argument("--all", action="store_true", help="build for all schemas in data/schemas/")
     ap.add_argument("--schemas_dir", type=str, default="data/schemas")
     ap.add_argument("--persist_dir", type=str, default="data/chroma")
@@ -23,7 +26,7 @@ def main():
         return
 
     if not args.domain:
-        raise SystemExit("Provide --domain chinook OR use --all")
+        raise SystemExit("Provide --domain nyc_311 OR use --all")
 
     schema_path = schemas_dir / f"{args.domain}.json"
     if not schema_path.exists():

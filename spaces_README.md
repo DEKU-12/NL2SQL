@@ -11,51 +11,66 @@ license: mit
 
 # 🧠 Multi-Domain NL→SQL Copilot
 
-A production-quality **Natural Language → SQL** system that converts plain English questions into executable SQL across three databases — using **schema-aware RAG**, **OpenAI GPT-4o-mini**, and strict **SQL guardrails**.
+A production-quality **Natural Language → SQL** system that converts plain English questions into executable SQL across three real-world databases — using **schema-aware RAG**, multiple LLM backends, and strict **SQL guardrails**.
 
 ## Live Demo
 
-Enter your OpenAI API key in the sidebar, pick a database (Chinook or Northwind), ask a question, and click **Run SQL**.
+Pick a database, enter your API key in the sidebar, ask a question, and click **Run SQL**.
 
-Example questions:
-- *"Show me the top 5 customers by total spend"*
-- *"Which genres have more than 100 tracks?"*
-- *"List all products with less than 10 units in stock"*
+**Databases:**
+- 🏙️ **NYC 311** — 300k+ government service requests (complaints, agencies, boroughs)
+- 🛒 **Olist E-Commerce** — 100k+ Brazilian e-commerce orders (sellers, products, reviews)
+- 🏥 **Synthea Healthcare** — 10k synthetic patients (encounters, conditions, medications)
+
+**Example questions:**
+- *"What are the top 5 most common complaint types across all boroughs?"*
+- *"Which product category generates the most total revenue?"*
+- *"How many patients have diabetes as a condition?"*
 
 ## How It Works
 
 1. **Schema RAG** — your question is embedded and matched against pre-indexed schema chunks (ChromaDB + sentence-transformers)
-2. **Prompt construction** — top-K schema chunks + domain glossary → structured prompt
-3. **LLM generation** — GPT-4o-mini generates SQL (SELECT-only, guardrails enforced)
+2. **Prompt construction** — top-K schema chunks + domain glossary + few-shot examples → structured prompt
+3. **LLM generation** — generates SQL (SELECT-only, guardrails enforced)
 4. **Safe execution** — SQL is validated (no DDL/DML), LIMIT is injected, then run against a bundled SQLite database
 5. **Results** — table view + CSV download
 
 ## Benchmark Results
 
-| Model | Accuracy (59 gold queries) | Avg Latency | Cost |
-|---|---|---|---|
-| gpt-4o-mini (OpenAI) | **100%** | 1.4 s | ~$0.15/59 queries |
-| qwen2.5-coder:7b (local Ollama) | **98.3%** | 4.8 s | $0.00 |
-| Groq llama-3.3-70b (free cloud) | 52.5% | 7.3 s | $0.00 |
-| Groq Qwen3-32B reasoning (free) | 49.2% | 34.5 s | $0.00 |
+| Model | Accuracy (59 gold queries) |
+|---|---|
+| OpenAI gpt-4o-mini | **96.6%** |
+| Groq llama-3.3-70b-versatile (free) | **96.6%** |
+| Groq llama-3.1-8b-instant (free) | 94.9% |
+| Ollama llama3.2:3b (local) | 67.8% |
 
-> **Key insight:** A 7B SQL-specialized local model (qwen2.5-coder:7b) nearly matches GPT-4o-mini at zero cost, while outperforming a 32B reasoning cloud model by **49 percentage points** — task-specific fine-tuning beats raw model size.
+## Supported LLM Backends
 
-## Run Locally (full Postgres + Ollama stack)
+| Backend | Key required | Cost |
+|---|---|---|
+| ⚡ Groq llama-3.3-70b | Free at console.groq.com | $0.00 |
+| 🤖 OpenAI gpt-4o-mini | platform.openai.com | ~$0.03/59 queries |
+| 🤗 HuggingFace Inference | huggingface.co/settings/tokens | Free tier |
+| 🖥️ Ollama (local) | No key needed | $0.00 |
 
-```bash
-git clone https://github.com/YOUR_USERNAME/nl2sql2
-cd nl2sql2
-cp .env.example .env   # add your OPENAI_API_KEY
-docker-compose up --build
-# App → http://localhost:8501
-```
+## Enabling the Olist Database
+
+Olist data comes from Kaggle and cannot be downloaded during Docker build (secrets aren't available at that stage). To enable it:
+
+1. Get a free Kaggle account at [kaggle.com](https://www.kaggle.com)
+2. Go to **Settings → API → Create New Token** to get your credentials
+3. In your Space settings, add two **Secrets**:
+   - `KAGGLE_USERNAME` — your Kaggle username
+   - `KAGGLE_KEY` — your API key
+4. Restart the Space — Olist will build automatically on first boot (~2 min)
+
+Without these secrets, the Space runs with NYC 311 and Synthea only (both auto-download).
 
 ## Tech Stack
 
 - **RAG**: ChromaDB + sentence-transformers (`all-MiniLM-L6-v2`)
-- **LLM**: OpenAI GPT-4o-mini (Spaces) / Ollama qwen2.5-coder:7b (local)
+- **LLM**: Groq / OpenAI / HuggingFace / Ollama
 - **DB**: SQLite (Spaces) / PostgreSQL (local Docker)
 - **Guardrails**: sqlglot AST parsing — SELECT/WITH only, LIMIT enforcement
 - **UI**: Streamlit
-- **Tests**: 64 pytest unit tests
+- **Tests**: 77 pytest unit tests

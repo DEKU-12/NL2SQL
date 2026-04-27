@@ -1,0 +1,129 @@
+{
+  "domain": "olist_ecommerce",
+  "tables": [
+    {
+      "table": "orders",
+      "columns": [
+        { "name": "order_id",                       "type": "TEXT" },
+        { "name": "customer_id",                    "type": "TEXT" },
+        { "name": "order_status",                   "type": "TEXT" },
+        { "name": "order_purchase_timestamp",       "type": "TEXT" },
+        { "name": "order_approved_at",              "type": "TEXT" },
+        { "name": "order_delivered_carrier_date",   "type": "TEXT" },
+        { "name": "order_delivered_customer_date",  "type": "TEXT" },
+        { "name": "order_estimated_delivery_date",  "type": "TEXT" }
+      ],
+      "primary_key": ["order_id"],
+      "foreign_keys": [
+        { "column": "customer_id", "ref_table": "customers", "ref_column": "customer_id" }
+      ],
+      "description": "Core order table for a Brazilian e-commerce marketplace (Olist). Each row is one order. Contains 99,441 orders.\n\nKEY COLUMN SEMANTICS:\n- order_id: unique identifier for each order (TEXT UUID)\n- customer_id: links to customers table\n- order_status: lifecycle state — 'delivered' (most common), 'shipped', 'processing', 'canceled', 'approved', 'invoiced', 'unavailable'\n- order_purchase_timestamp: when the customer placed the order (TEXT, e.g. '2018-01-15 12:34:56'). Use STRFTIME('%Y', order_purchase_timestamp) for year\n- order_approved_at: when payment was approved\n- order_delivered_carrier_date: when order was handed to carrier\n- order_delivered_customer_date: when customer actually received the order\n- order_estimated_delivery_date: promised delivery date\n\nCOMMON QUERY PATTERNS (SQLite):\n- Delivery time: JULIANDAY(order_delivered_customer_date) - JULIANDAY(order_purchase_timestamp)\n- Late deliveries: order_delivered_customer_date > order_estimated_delivery_date\n- Approval time: JULIANDAY(order_approved_at) - JULIANDAY(order_purchase_timestamp)\n- Filter by year: STRFTIME('%Y', order_purchase_timestamp) = '2018'\n- Monthly counts: STRFTIME('%Y-%m', order_purchase_timestamp)\n- Cancelled orders: order_status = 'canceled'"
+    },
+    {
+      "table": "order_items",
+      "columns": [
+        { "name": "order_id",            "type": "TEXT" },
+        { "name": "order_item_id",       "type": "INTEGER" },
+        { "name": "product_id",          "type": "TEXT" },
+        { "name": "seller_id",           "type": "TEXT" },
+        { "name": "shipping_limit_date", "type": "TEXT" },
+        { "name": "price",               "type": "REAL" },
+        { "name": "freight_value",       "type": "REAL" }
+      ],
+      "primary_key": [],
+      "foreign_keys": [
+        { "column": "order_id",   "ref_table": "orders",   "ref_column": "order_id" },
+        { "column": "product_id", "ref_table": "products", "ref_column": "product_id" },
+        { "column": "seller_id",  "ref_table": "sellers",  "ref_column": "seller_id" }
+      ],
+      "description": "Line items within each order. Each row is one product in one order. Contains 112,650 rows. Multiple rows can share the same order_id if an order has multiple items.\n\nKEY COLUMN SEMANTICS:\n- order_id: links to orders table\n- order_item_id: position of item within the order (1, 2, 3...)\n- product_id: links to products table\n- seller_id: links to sellers table\n- price: item sale price in BRL (Brazilian Reals)\n- freight_value: shipping cost for this item in BRL\n\nREVENUE FORMULA: SUM(price) for revenue, SUM(freight_value) for freight costs\nITEMS PER ORDER: COUNT(order_item_id) grouped by order_id\nTOTAL ORDER VALUE: SUM(price + freight_value)"
+    },
+    {
+      "table": "order_payments",
+      "columns": [
+        { "name": "order_id",             "type": "TEXT" },
+        { "name": "payment_sequential",   "type": "INTEGER" },
+        { "name": "payment_type",         "type": "TEXT" },
+        { "name": "payment_installments", "type": "INTEGER" },
+        { "name": "payment_value",        "type": "REAL" }
+      ],
+      "primary_key": [],
+      "foreign_keys": [
+        { "column": "order_id", "ref_table": "orders", "ref_column": "order_id" }
+      ],
+      "description": "Payment transactions for each order. Multiple rows per order if payment was split. Contains 103,886 rows.\n\nKEY COLUMN SEMANTICS:\n- order_id: links to orders table\n- payment_sequential: sequence number when payment is split (1, 2, 3...)\n- payment_type: method of payment — 'credit_card' (most common), 'boleto' (bank slip), 'voucher', 'debit_card'\n- payment_installments: number of installments (1 = paid in full, higher = split over months)\n- payment_value: amount paid in this transaction in BRL\n\nREVENUE BY PAYMENT TYPE: SUM(payment_value) GROUP BY payment_type\nMOST COMMON PAYMENT: COUNT(*) GROUP BY payment_type ORDER BY count DESC"
+    },
+    {
+      "table": "order_reviews",
+      "columns": [
+        { "name": "review_id",               "type": "TEXT" },
+        { "name": "order_id",                "type": "TEXT" },
+        { "name": "review_score",            "type": "INTEGER" },
+        { "name": "review_comment_title",    "type": "TEXT" },
+        { "name": "review_comment_message",  "type": "TEXT" },
+        { "name": "review_creation_date",    "type": "TEXT" },
+        { "name": "review_answer_timestamp", "type": "TEXT" }
+      ],
+      "primary_key": ["review_id"],
+      "foreign_keys": [
+        { "column": "order_id", "ref_table": "orders", "ref_column": "order_id" }
+      ],
+      "description": "Customer satisfaction reviews for orders. Contains 98,410 reviews after deduplication.\n\nKEY COLUMN SEMANTICS:\n- review_id: unique review identifier\n- order_id: links to orders table\n- review_score: star rating from 1 to 5 (INTEGER). 5 = best, 1 = worst\n- review_comment_title: short title (often NULL)\n- review_comment_message: free-text review body (often NULL)\n- review_creation_date: when the review was created\n- review_answer_timestamp: when the seller responded\n\n5-STAR PERCENTAGE: COUNT(*) FILTER (WHERE review_score=5) / COUNT(*) * 100\nAVERAGE SCORE BY CATEGORY: JOIN order_items and products, GROUP BY product_category_name\nBAD SELLERS: sellers with AVG(review_score) < 3"
+    },
+    {
+      "table": "customers",
+      "columns": [
+        { "name": "customer_id",              "type": "TEXT" },
+        { "name": "customer_unique_id",       "type": "TEXT" },
+        { "name": "customer_zip_code_prefix", "type": "TEXT" },
+        { "name": "customer_city",            "type": "TEXT" },
+        { "name": "customer_state",           "type": "TEXT" }
+      ],
+      "primary_key": ["customer_id"],
+      "foreign_keys": [],
+      "description": "Customer dimension table. Contains 99,441 customers (one per order — customer_id is order-specific; customer_unique_id identifies the same person across orders).\n\nKEY COLUMN SEMANTICS:\n- customer_id: order-level customer ID (links to orders.customer_id)\n- customer_unique_id: true unique customer identifier (one person may have multiple customer_ids)\n- customer_zip_code_prefix: first 5 digits of Brazilian postal code\n- customer_city: city name (e.g. 'sao paulo', 'rio de janeiro', 'belo horizonte')\n- customer_state: Brazilian state code (e.g. 'SP', 'RJ', 'MG', 'BA', 'RS', 'PR', 'SC')\n\nMOST CUSTOMERS BY STATE: COUNT(*) GROUP BY customer_state\nCITIES WITH MOST CUSTOMERS: COUNT(*) GROUP BY customer_city"
+    },
+    {
+      "table": "products",
+      "columns": [
+        { "name": "product_id",                 "type": "TEXT" },
+        { "name": "product_category_name",      "type": "TEXT" },
+        { "name": "product_name_length",        "type": "INTEGER" },
+        { "name": "product_description_length", "type": "INTEGER" },
+        { "name": "product_photos_qty",         "type": "INTEGER" },
+        { "name": "product_weight_g",           "type": "REAL" },
+        { "name": "product_length_cm",          "type": "REAL" },
+        { "name": "product_height_cm",          "type": "REAL" },
+        { "name": "product_width_cm",           "type": "REAL" }
+      ],
+      "primary_key": ["product_id"],
+      "foreign_keys": [],
+      "description": "Product catalog. Contains 32,951 products. Categories are in Portuguese.\n\nKEY COLUMN SEMANTICS:\n- product_id: unique product identifier (links to order_items.product_id)\n- product_category_name: Portuguese category name (e.g. 'cama_mesa_banho'=bed/bath, 'beleza_saude'=beauty/health, 'esporte_lazer'=sports, 'moveis_decoracao'=furniture, 'informatica_acessorios'=electronics/accessories, 'utilidades_domesticas'=home appliances, 'relogios_presentes'=watches/gifts, 'ferramentas_jardim'=tools/garden)\n- product_weight_g: weight in grams\n- product_length_cm, product_height_cm, product_width_cm: dimensions in centimeters\n\nTO FIND REVENUE BY CATEGORY: JOIN order_items ON product_id, SUM(price) GROUP BY product_category_name\nHIGHEST AVERAGE ORDER VALUE: AVG(price) per product_category_name"
+    },
+    {
+      "table": "sellers",
+      "columns": [
+        { "name": "seller_id",               "type": "TEXT" },
+        { "name": "seller_zip_code_prefix",  "type": "TEXT" },
+        { "name": "seller_city",             "type": "TEXT" },
+        { "name": "seller_state",            "type": "TEXT" }
+      ],
+      "primary_key": ["seller_id"],
+      "foreign_keys": [],
+      "description": "Seller dimension table. Contains 3,095 sellers on the Olist marketplace.\n\nKEY COLUMN SEMANTICS:\n- seller_id: unique seller identifier (links to order_items.seller_id)\n- seller_zip_code_prefix: first 5 digits of Brazilian postal code\n- seller_city: seller's city (e.g. 'sao paulo', 'curitiba', 'belo horizonte')\n- seller_state: Brazilian state code (e.g. 'SP', 'PR', 'MG')\n\nTOP SELLERS BY REVENUE: JOIN order_items ON seller_id, SUM(price)\nSELLER REVIEW SCORES: JOIN order_items -> orders -> order_reviews, AVG(review_score)"
+    },
+    {
+      "table": "geolocation",
+      "columns": [
+        { "name": "geolocation_zip_code_prefix", "type": "TEXT" },
+        { "name": "geolocation_lat",             "type": "REAL" },
+        { "name": "geolocation_lng",             "type": "REAL" },
+        { "name": "geolocation_city",            "type": "TEXT" },
+        { "name": "geolocation_state",           "type": "TEXT" }
+      ],
+      "primary_key": [],
+      "foreign_keys": [],
+      "description": "Brazilian zip code to lat/lng lookup table. Contains 1,000,163 rows (multiple coordinates per zip prefix). Typically not needed for most business queries — use customer_state or seller_state directly from customers and sellers tables instead."
+    }
+  ]
+}

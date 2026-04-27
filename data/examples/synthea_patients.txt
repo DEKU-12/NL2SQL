@@ -1,0 +1,169 @@
+Q: How many patients are in the dataset?
+SQL: SELECT COUNT(*) AS patient_count
+     FROM patients
+     LIMIT 200;
+
+Q: What is the gender distribution of patients?
+SQL: SELECT gender, COUNT(*) AS count,
+            ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) AS pct
+     FROM patients
+     GROUP BY gender
+     ORDER BY count DESC
+     LIMIT 200;
+
+Q: What are the top 10 most common diagnoses?
+SQL: SELECT description, COUNT(*) AS diagnosis_count
+     FROM conditions
+     GROUP BY description
+     ORDER BY diagnosis_count DESC
+     LIMIT 10;
+
+Q: What is the average healthcare cost per patient?
+SQL: SELECT ROUND(AVG(healthcare_expenses), 2) AS avg_healthcare_expenses
+     FROM patients
+     LIMIT 200;
+
+Q: Which state has the most patients?
+SQL: SELECT state, COUNT(*) AS patient_count
+     FROM patients
+     GROUP BY state
+     ORDER BY patient_count DESC
+     LIMIT 1;
+
+Q: What is the most commonly prescribed medication?
+SQL: SELECT description, COUNT(*) AS prescription_count
+     FROM medications
+     GROUP BY description
+     ORDER BY prescription_count DESC
+     LIMIT 1;
+
+Q: How many patients have diabetes as a condition?
+SQL: SELECT COUNT(DISTINCT patient) AS diabetes_patients
+     FROM conditions
+     WHERE LOWER(description) LIKE '%diabetes%'
+     LIMIT 200;
+
+Q: What is the average number of encounters per patient?
+SQL: SELECT ROUND(CAST(COUNT(*) AS REAL) / COUNT(DISTINCT patient), 2) AS avg_encounters_per_patient
+     FROM encounters
+     LIMIT 200;
+
+Q: Which encounter class is most common?
+SQL: SELECT encounterclass, COUNT(*) AS encounter_count
+     FROM encounters
+     GROUP BY encounterclass
+     ORDER BY encounter_count DESC
+     LIMIT 200;
+
+Q: What is the average total claim cost by encounter type?
+SQL: SELECT encounterclass,
+            ROUND(AVG(total_claim_cost), 2) AS avg_total_claim_cost
+     FROM encounters
+     GROUP BY encounterclass
+     ORDER BY avg_total_claim_cost DESC
+     LIMIT 200;
+
+Q: How many patients have at least one allergy?
+SQL: SELECT COUNT(DISTINCT patient) AS patients_with_allergies
+     FROM allergies
+     LIMIT 200;
+
+Q: What are the top 5 most common procedures?
+SQL: SELECT description, COUNT(*) AS procedure_count
+     FROM procedures
+     GROUP BY description
+     ORDER BY procedure_count DESC
+     LIMIT 5;
+
+Q: How many patients died during the recorded period?
+SQL: SELECT COUNT(*) AS deceased_patients
+     FROM patients
+     WHERE deathdate IS NOT NULL
+     LIMIT 200;
+
+Q: What is the average payer coverage percentage across all encounters?
+SQL: SELECT ROUND(
+         AVG(CASE WHEN total_claim_cost > 0 THEN payer_coverage / total_claim_cost * 100 ELSE 0 END), 2
+     ) AS avg_payer_coverage_pct
+     FROM encounters
+     WHERE total_claim_cost IS NOT NULL
+     LIMIT 200;
+
+Q: How many unique medications are prescribed in the dataset?
+SQL: SELECT COUNT(DISTINCT description) AS unique_medications
+     FROM medications
+     LIMIT 200;
+
+Q: What are the top 3 most common allergy types?
+SQL: SELECT type, COUNT(*) AS allergy_count
+     FROM allergies
+     WHERE type IS NOT NULL
+     GROUP BY type
+     ORDER BY allergy_count DESC
+     LIMIT 3;
+
+Q: Show the number of encounters per year
+SQL: SELECT STRFTIME('%Y', start) AS year,
+            COUNT(*) AS encounter_count
+     FROM encounters
+     WHERE start IS NOT NULL
+     GROUP BY year
+     ORDER BY year ASC
+     LIMIT 200;
+
+Q: Which conditions have the highest average medication cost?
+SQL: SELECT m.reasondescription,
+            ROUND(AVG(m.totalcost), 2) AS avg_medication_cost
+     FROM medications m
+     WHERE m.reasondescription IS NOT NULL
+     GROUP BY m.reasondescription
+     ORDER BY avg_medication_cost DESC
+     LIMIT 10;
+
+Q: What is the average number of encounters per patient?
+SQL: SELECT ROUND(CAST(COUNT(*) AS REAL) / COUNT(DISTINCT patient), 2) AS avg_encounters_per_patient
+     FROM encounters
+     LIMIT 200;
+
+Q: What are the top 3 most common allergy categories?
+SQL: SELECT category, COUNT(*) AS allergy_count
+     FROM allergies
+     WHERE category IS NOT NULL
+     GROUP BY category
+     ORDER BY allergy_count DESC
+     LIMIT 3;
+
+Q: What is the average total claim cost by encounter type?
+SQL: SELECT encounterclass,
+            ROUND(AVG(total_claim_cost), 2) AS avg_total_claim_cost
+     FROM encounters
+     GROUP BY encounterclass
+     ORDER BY avg_total_claim_cost DESC
+     LIMIT 200;
+
+Q: What is the average age of patients at their first encounter?
+SQL: SELECT ROUND(
+         AVG(CAST((JULIANDAY(e.first_encounter) - JULIANDAY(p.birthdate)) / 365.25 AS REAL)), 2
+     ) AS avg_age_first_encounter
+     FROM patients p
+     JOIN (
+         SELECT patient, MIN(start) AS first_encounter
+         FROM encounters
+         GROUP BY patient
+     ) e ON e.patient = p.id
+     LIMIT 200;
+
+Q: What is the average payer coverage percentage across all encounters?
+SQL: SELECT ROUND(
+         AVG(CASE WHEN total_claim_cost > 0 THEN payer_coverage / total_claim_cost * 100 ELSE 0 END), 2
+     ) AS avg_payer_coverage_pct
+     FROM encounters
+     WHERE total_claim_cost IS NOT NULL
+     LIMIT 200;
+
+Q: Which encounter class is most common?
+SQL: SELECT encounterclass, COUNT(*) AS encounter_count
+     FROM encounters
+     GROUP BY encounterclass
+     ORDER BY encounter_count DESC
+     LIMIT 1;

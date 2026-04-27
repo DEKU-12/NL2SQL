@@ -1,0 +1,149 @@
+Q: How many complaints were filed in Brooklyn in 2023?
+SQL: SELECT COUNT(*) AS complaint_count
+     FROM nyc_311
+     WHERE borough = 'BROOKLYN'
+       AND STRFTIME('%Y', created_date) = '2023'
+     LIMIT 200;
+
+Q: What are the top 5 most common complaint types across all boroughs?
+SQL: SELECT complaint_type, COUNT(*) AS complaint_count
+     FROM nyc_311
+     GROUP BY complaint_type
+     ORDER BY complaint_count DESC
+     LIMIT 5;
+
+Q: Which borough has the highest number of noise complaints?
+SQL: SELECT borough, COUNT(*) AS noise_count
+     FROM nyc_311
+     WHERE LOWER(complaint_type) LIKE '%noise%'
+     GROUP BY borough
+     ORDER BY noise_count DESC
+     LIMIT 1;
+
+Q: What is the average resolution time in days for each borough?
+SQL: SELECT borough,
+            ROUND(AVG(JULIANDAY(closed_date) - JULIANDAY(created_date)), 2) AS avg_resolution_days
+     FROM nyc_311
+     WHERE closed_date IS NOT NULL
+       AND created_date IS NOT NULL
+     GROUP BY borough
+     ORDER BY avg_resolution_days ASC
+     LIMIT 200;
+
+Q: How many complaints are currently still open?
+SQL: SELECT COUNT(*) AS open_complaints
+     FROM nyc_311
+     WHERE status = 'Open' OR closed_date IS NULL
+     LIMIT 200;
+
+Q: Which agency handles the most service requests?
+SQL: SELECT agency, agency_name, COUNT(*) AS request_count
+     FROM nyc_311
+     GROUP BY agency, agency_name
+     ORDER BY request_count DESC
+     LIMIT 1;
+
+Q: Show me the number of complaints filed each month in 2023
+SQL: SELECT STRFTIME('%Y-%m', created_date) AS year_month,
+            COUNT(*) AS complaint_count
+     FROM nyc_311
+     WHERE STRFTIME('%Y', created_date) = '2023'
+     GROUP BY year_month
+     ORDER BY year_month ASC
+     LIMIT 200;
+
+Q: What percentage of complaints were resolved within 7 days?
+SQL: SELECT ROUND(
+         100.0 * SUM(CASE WHEN (JULIANDAY(closed_date) - JULIANDAY(created_date)) <= 7 THEN 1 ELSE 0 END)
+         / COUNT(*), 2
+     ) AS pct_resolved_within_7_days
+     FROM nyc_311
+     WHERE closed_date IS NOT NULL
+     LIMIT 200;
+
+Q: Which complaint type takes the longest to resolve on average?
+SQL: SELECT complaint_type,
+            ROUND(AVG(JULIANDAY(closed_date) - JULIANDAY(created_date)), 2) AS avg_days
+     FROM nyc_311
+     WHERE closed_date IS NOT NULL
+     GROUP BY complaint_type
+     ORDER BY avg_days DESC
+     LIMIT 1;
+
+Q: How many complaints were filed on weekends vs weekdays?
+SQL: SELECT
+         CASE WHEN STRFTIME('%w', created_date) IN ('0', '6') THEN 'Weekend' ELSE 'Weekday' END AS day_type,
+         COUNT(*) AS complaint_count
+     FROM nyc_311
+     GROUP BY day_type
+     ORDER BY complaint_count DESC
+     LIMIT 200;
+
+Q: Which agency has the fastest average resolution time?
+SQL: SELECT agency, agency_name,
+            ROUND(AVG(JULIANDAY(closed_date) - JULIANDAY(created_date)), 2) AS avg_days
+     FROM nyc_311
+     WHERE closed_date IS NOT NULL
+     GROUP BY agency, agency_name
+     ORDER BY avg_days ASC
+     LIMIT 5;
+
+Q: What is the most common complaint type for each borough?
+SQL: SELECT borough, complaint_type, complaint_count
+     FROM (
+         SELECT borough, complaint_type, COUNT(*) AS complaint_count,
+                RANK() OVER (PARTITION BY borough ORDER BY COUNT(*) DESC) AS rnk
+         FROM nyc_311
+         GROUP BY borough, complaint_type
+     ) ranked
+     WHERE rnk = 1
+     ORDER BY borough
+     LIMIT 200;
+
+Q: How many unique complaint types exist in the dataset?
+SQL: SELECT COUNT(DISTINCT complaint_type) AS unique_complaint_types
+     FROM nyc_311
+     LIMIT 200;
+
+Q: Show the top 5 descriptor types for noise complaints in the Bronx
+SQL: SELECT descriptor, COUNT(*) AS count
+     FROM nyc_311
+     WHERE borough = 'BRONX'
+       AND LOWER(complaint_type) LIKE '%noise%'
+     GROUP BY descriptor
+     ORDER BY count DESC
+     LIMIT 5;
+
+Q: Show complaints by borough with their average resolution days sorted fastest to slowest
+SQL: SELECT borough,
+            ROUND(AVG(JULIANDAY(closed_date) - JULIANDAY(created_date)), 2) AS avg_resolution_days
+     FROM nyc_311
+     WHERE closed_date IS NOT NULL
+     GROUP BY borough
+     ORDER BY avg_resolution_days ASC
+     LIMIT 200;
+
+Q: Show all complaint types in Manhattan with more than 1000 reports
+SQL: SELECT complaint_type, COUNT(*) AS report_count
+     FROM nyc_311
+     WHERE borough = 'MANHATTAN'
+     GROUP BY complaint_type
+     HAVING COUNT(*) > 1000
+     ORDER BY report_count DESC
+     LIMIT 200;
+
+Q: Which city outside of the 5 boroughs has the most complaints?
+SQL: SELECT city, COUNT(*) AS complaint_count
+     FROM nyc_311
+     WHERE borough NOT IN ('BROOKLYN', 'MANHATTAN', 'QUEENS', 'BRONX', 'STATEN ISLAND')
+       AND city IS NOT NULL
+     GROUP BY city
+     ORDER BY complaint_count DESC
+     LIMIT 1;
+
+Q: What percentage of complaints have no closed date?
+SQL: SELECT ROUND(
+         100.0 * SUM(CASE WHEN closed_date IS NULL THEN 1 ELSE 0 END) / COUNT(*), 2
+     ) AS pct_no_closed_date
+     FROM nyc_311
+     LIMIT 200;

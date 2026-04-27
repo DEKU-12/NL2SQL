@@ -1,0 +1,28 @@
+{
+  "domain": "nyc_311",
+  "tables": [
+    {
+      "table": "nyc_311",
+      "columns": [
+        { "name": "unique_key",                     "type": "INTEGER" },
+        { "name": "created_date",                   "type": "TEXT" },
+        { "name": "closed_date",                    "type": "TEXT" },
+        { "name": "agency",                         "type": "TEXT" },
+        { "name": "agency_name",                    "type": "TEXT" },
+        { "name": "complaint_type",                 "type": "TEXT" },
+        { "name": "descriptor",                     "type": "TEXT" },
+        { "name": "location_type",                  "type": "TEXT" },
+        { "name": "borough",                        "type": "TEXT" },
+        { "name": "city",                           "type": "TEXT" },
+        { "name": "status",                         "type": "TEXT" },
+        { "name": "resolution_description",         "type": "TEXT" },
+        { "name": "latitude",                       "type": "REAL" },
+        { "name": "longitude",                      "type": "REAL" },
+        { "name": "resolution_action_updated_date", "type": "TEXT" }
+      ],
+      "primary_key": ["unique_key"],
+      "foreign_keys": [],
+      "description": "Real NYC 311 government service request data (2022-2024). Each row is one complaint or service request filed by a New York City resident. Contains 500,000 records. All data lives in this single table — no joins needed.\n\nKEY COLUMN SEMANTICS:\n- unique_key: integer primary key for each complaint\n- created_date: when the complaint was filed (TEXT, ISO format e.g. '2023-04-15T10:30:00.000'). Use STRFTIME('%Y', created_date) for year, STRFTIME('%m', created_date) for month, STRFTIME('%w', created_date) for day-of-week (0=Sunday, 6=Saturday)\n- closed_date: when the complaint was resolved (NULL if still open)\n- agency: short code for the handling agency (e.g. 'NYPD', 'HPD', 'DSNY', 'DOT', 'DEP', 'DPR', 'DOB')\n- agency_name: full agency name (e.g. 'New York City Police Department', 'Department of Housing Preservation and Development')\n- complaint_type: category of the complaint (e.g. 'Noise - Residential', 'HEAT/HOT WATER', 'Illegal Parking', 'Blocked Driveway', 'Street Condition', 'Rodent', 'Graffiti', 'Street Light Condition', 'Sanitation Condition')\n- descriptor: sub-category of complaint (e.g. 'Loud Music/Party', 'Banging/Pounding', 'Loud Talking', 'Heat', 'Hot Water')\n- location_type: type of location (e.g. 'Street/Sidewalk', 'Residential Building/House', 'Store/Commercial')\n- borough: NYC borough in ALL CAPS — 'BROOKLYN', 'MANHATTAN', 'QUEENS', 'BRONX', 'STATEN ISLAND', 'Unspecified'\n- city: city name (for complaints outside the 5 boroughs, e.g. 'JAMAICA', 'FLUSHING', 'BRONX')\n- status: current status — 'Open', 'Closed', 'Pending', 'In Progress', 'Assigned'\n- resolution_description: free-text description of how the complaint was resolved\n- latitude, longitude: geographic coordinates (REAL)\n- resolution_action_updated_date: last time the resolution status was updated\n\nCOMMON QUERY PATTERNS (SQLite):\n- Resolution time in days: JULIANDAY(closed_date) - JULIANDAY(created_date)\n- Open complaints: status = 'Open' OR closed_date IS NULL\n- Filter by year: STRFTIME('%Y', created_date) = '2023'\n- Filter by month range: STRFTIME('%Y-%m', created_date) BETWEEN '2023-06' AND '2023-08'\n- Weekend complaints: STRFTIME('%w', created_date) IN ('0', '6')\n- Weekday complaints: STRFTIME('%w', created_date) NOT IN ('0', '6')\n- Within 7 days: (JULIANDAY(closed_date) - JULIANDAY(created_date)) <= 7\n\nSAMPLE QUESTIONS THIS TABLE ANSWERS:\n- How many complaints were filed in Brooklyn in 2023?\n- Which borough has the highest number of noise complaints?\n- What is the average resolution time in days for each borough?\n- Which agency handles the most service requests?\n- What percentage of complaints were resolved within 7 days?\n- Show complaints filed on weekends vs weekdays"
+    }
+  ]
+}

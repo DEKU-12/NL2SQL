@@ -23,6 +23,12 @@ venv/
 data/chroma/
 **/chroma.sqlite3
 
+# SQLite databases (large generated files — built at runtime)
+data/sqlite/
+
+# Raw downloaded data (large, re-downloadable)
+data/raw/
+
 # Streamlit
 .streamlit/
 
@@ -30,8 +36,4 @@ data/chroma/
 *.log
 .env
 .idea/
-
-# Chroma vector DB (generated)
-data/chroma/
-**/chroma.sqlite3
 

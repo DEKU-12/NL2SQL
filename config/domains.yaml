@@ -1,12 +1,15 @@
 domains:
-  chinook:
-    dbname: chinook
-    schema_out: data/schemas/chinook.json
+  nyc_311:
+    dbname: nyc_311
+    label: "NYC 311 Government Data"
+    schema_out: data/schemas/nyc_311.json
 
-  dvdrental:
-    dbname: dvdrental
-    schema_out: data/schemas/dvdrental.json
+  olist_ecommerce:
+    dbname: olist_ecommerce
+    label: "Brazilian E-Commerce (Olist)"
+    schema_out: data/schemas/olist_ecommerce.json
 
-  northwind:
-    dbname: northwind
-    schema_out: data/schemas/northwind.json
+  synthea_patients:
+    dbname: synthea_patients
+    label: "Synthea Healthcare Data"
+    schema_out: data/schemas/synthea_patients.json

@@ -74,10 +74,14 @@ def call_openai(prompt: str, model: str = "gpt-4o-mini", api_key: str | None = N
     return response.choices[0].message.content or ""
 
 
-def call_ollama(prompt: str, model: str, base_url: str = "http://localhost:11434") -> str:
+def call_ollama(prompt: str, model: str, base_url: str = "http://localhost:11434", wall_timeout: int = 90) -> str:
     """
-    Uses Ollama /api/chat (modern Ollama versions).
+    Uses Ollama /api/chat with a hard wall-clock timeout.
+    stream=False keeps the socket alive during generation so requests.timeout
+    never fires — we use a daemon thread + join(timeout) instead.
     """
+    import threading
+
     url = f"{base_url}/api/chat"
     payload = {
         "model": model,
@@ -86,12 +90,29 @@ def call_ollama(prompt: str, model: str, base_url: str = "http://localhost:11434
             {"role": "system", "content": "You are a precise Text-to-SQL generator. Output ONLY SQL."},
             {"role": "user", "content": prompt},
         ],
-        "options": {"temperature": 0.1, "num_predict": 512},
+        "options": {"temperature": 0.1, "num_predict": 256, "num_ctx": 8192},
     }
-    r = requests.post(url, json=payload, timeout=180)
-    r.raise_for_status()
-    data = r.json()
-    return data["message"]["content"]
+
+    result: list = [None]
+    exc: list = [None]
+
+    def _req():
+        try:
+            r = requests.post(url, json=payload, timeout=wall_timeout)
+            r.raise_for_status()
+            result[0] = r.json()["message"]["content"]
+        except Exception as e:
+            exc[0] = e
+
+    t = threading.Thread(target=_req, daemon=True)
+    t.start()
+    t.join(timeout=wall_timeout)
+
+    if t.is_alive():
+        raise TimeoutError(f"Ollama call timed out after {wall_timeout}s — skipping this case.")
+    if exc[0] is not None:
+        raise exc[0]
+    return result[0]
 
 
 def extract_sql(text: str) -> str:

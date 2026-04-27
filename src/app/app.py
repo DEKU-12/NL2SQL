@@ -1,7 +1,13 @@
 # src/app/app.py
 from __future__ import annotations
 
+import json
 import os
+import random
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import pandas as pd
 import streamlit as st
 
@@ -11,7 +17,19 @@ from src.t2sql.guardrails import validate_and_fix
 from src.t2sql.generate import call_ollama, call_openai, call_groq, call_hf_inference, extract_sql
 from src.t2sql.executor import run_sql
 
-DOMAINS = ["chinook", "dvdrental", "northwind"]
+DOMAINS = ["nyc_311", "olist_ecommerce", "synthea_patients"]
+
+DOMAIN_LABELS = {
+    "nyc_311":          "🏙️ NYC 311 — Government Complaints",
+    "olist_ecommerce":  "🛒 Olist — Brazilian E-Commerce",
+    "synthea_patients": "🏥 Synthea — Healthcare Patients",
+}
+
+DOMAIN_DESCRIPTIONS = {
+    "nyc_311":          "1 table · 300k+ service requests · boroughs, agencies, complaint types",
+    "olist_ecommerce":  "8 tables · 100k+ orders · sellers, products, reviews, payments",
+    "synthea_patients": "6 tables · 10k synthetic patients · encounters, conditions, medications",
+}
 
 
 # ── HF Spaces: auto-build chroma index if missing ────────────────────────────
@@ -21,7 +39,7 @@ def _ensure_chroma_index() -> None:
     if os.path.isdir(chroma_dir) and any(os.scandir(chroma_dir)):
         return  # already built
     try:
-        import subprocess, sys
+        import subprocess
         with st.spinner("⏳ Building schema index (first boot — takes ~60s)..."):
             result = subprocess.run(
                 [sys.executable, "scripts/02_build_index.py", "--all"],
@@ -31,6 +49,44 @@ def _ensure_chroma_index() -> None:
             st.error(f"Index build failed:\n{result.stderr[:500]}")
     except Exception as e:
         st.error(f"Index build error: {e}")
+
+
+def _ensure_olist_db() -> None:
+    """
+    On HF Spaces: try to build olist_ecommerce.db at runtime using Kaggle credentials.
+    Silently skips if KAGGLE_USERNAME / KAGGLE_KEY secrets are not set.
+    """
+    olist_path = Path("data/sqlite/olist_ecommerce.db")
+    if olist_path.exists() and olist_path.stat().st_size > 1_000_000:
+        return  # already built
+    username = os.getenv("KAGGLE_USERNAME")
+    key      = os.getenv("KAGGLE_KEY") or os.getenv("KAGGLE_API_KEY")
+    if not username or not key:
+        return  # no credentials — skip silently
+    try:
+        import subprocess
+        with st.spinner("⏳ Downloading Olist database (first boot — ~3 min)..."):
+            result = subprocess.run(
+                [sys.executable, "scripts/build_databases.py", "--only", "olist"],
+                capture_output=True, text=True, timeout=600,
+            )
+        if result.returncode != 0:
+            st.warning(f"Olist DB build failed:\n{result.stderr[:300]}")
+    except Exception as e:
+        st.warning(f"Olist DB build error: {e}")
+
+
+def _available_domains() -> list[str]:
+    """Return domains whose SQLite databases actually exist (used in HF mode)."""
+    if not _HF_MODE:
+        return DOMAINS
+    db_dir = Path("data/sqlite")
+    db_map = {
+        "nyc_311":          "nyc_311.db",
+        "olist_ecommerce":  "olist_ecommerce.db",
+        "synthea_patients": "synthea_patients.db",
+    }
+    return [d for d in DOMAINS if (db_dir / db_map[d]).exists()]
 
 
 # ── Mode detection ────────────────────────────────────────────────────────────
@@ -91,7 +147,8 @@ def main():
     st.set_page_config(page_title="NL→SQL Copilot", layout="wide", page_icon="🧠")
 
     if _HF_MODE:
-        _ensure_chroma_index()
+        _ensure_olist_db()      # try Kaggle if KAGGLE_KEY secret is set
+        _ensure_chroma_index()  # rebuild chroma if missing
 
     cfg = get_settings()
 
@@ -99,8 +156,8 @@ def main():
     if _HF_MODE:
         st.caption("RAG + OpenAI + SQLite — running on Hugging Face Spaces")
         st.info(
-            "**Demo mode:** Using bundled SQLite databases (Chinook & Northwind). "
-            "Enter your OpenAI API key in the sidebar to generate SQL.",
+            "**Demo mode:** Using real-world SQLite databases (NYC 311, Olist E-Commerce, Synthea Healthcare). "
+            "Enter your API key in the sidebar to generate SQL.",
             icon="ℹ️",
         )
     else:
@@ -110,23 +167,39 @@ def main():
     with st.sidebar:
         st.header("⚙️ Settings")
 
-        # Domain selector — hide dvdrental in SQLite mode (not bundled)
-        available_domains = ["chinook", "northwind"] if _HF_MODE else DOMAINS
-        domain = st.selectbox("Domain (database)", available_domains, index=0)
+        # Domain selector — only show databases that are actually available
+        avail_domains = _available_domains()
+        domain = st.selectbox(
+            "Domain (database)",
+            avail_domains,
+            index=0,
+            format_func=lambda d: DOMAIN_LABELS.get(d, d),
+        )
+        st.caption(DOMAIN_DESCRIPTIONS.get(domain, ""))
+        if _HF_MODE and len(avail_domains) < len(DOMAINS):
+            missing = [DOMAIN_LABELS[d] for d in DOMAINS if d not in avail_domains]
+            st.caption(f"⚠️ Unavailable: {', '.join(missing)} — add KAGGLE_USERNAME + KAGGLE_KEY Secrets to enable.")
 
         k = st.slider("Top-K schema chunks", 3, 20, 15)
 
         st.divider()
         st.subheader("🤖 LLM Backend")
 
-        backend_options = ["hf", "groq", "openai", "ollama"] if not _HF_MODE else ["hf", "groq", "openai"]
+        backend_options = ["groq", "openai", "ollama", "hf"] if not _HF_MODE else ["groq", "openai", "hf"]
+        backend_labels = {
+            "groq":   "⚡ Groq — llama-3.3-70b (free, fast)",
+            "openai": "🤖 OpenAI — gpt-4o-mini",
+            "ollama": "🖥️ Ollama — local model",
+            "hf":     "🤗 HuggingFace Inference API",
+        }
         default_idx = backend_options.index(_default_backend()) if _default_backend() in backend_options else 0
         backend = st.selectbox(
-            "Backend",
+            "LLM Backend",
             backend_options,
             index=default_idx,
             key="backend",
-            help="HF = qwen2.5-coder:7b (same as benchmark). Groq = free & fast. OpenAI = GPT-4o-mini. Ollama = local.",
+            format_func=lambda b: backend_labels.get(b, b),
+            help="Groq is free. OpenAI requires an API key with credits. Ollama runs locally.",
         )
 
         groq_key_input = ""
@@ -142,7 +215,7 @@ def main():
                 help="Free at huggingface.co/settings/tokens (Read token is enough).",
             )
             st.caption(f"Model: `{cfg['hf_model']}`")
-            st.caption("⭐ Same model as the 98.3% benchmark result")
+            st.caption("⭐ Similar class to the 96.6% benchmark model")
         elif backend == "groq":
             groq_key_input = st.text_input(
                 "Groq API Key",
@@ -173,27 +246,52 @@ def main():
             st.divider()
             st.markdown(
                 "**Benchmark results** (59 gold queries):\n\n"
-                "| Model | Accuracy | Latency |\n"
-                "|---|---|---|\n"
-                "| gpt-4o-mini | 100% | 1.4 s |\n"
-                "| qwen2.5-coder:7b (local) | 98.3% | 4.8 s |\n"
-                "| Groq llama-3.3-70b | 52.5% | 7.3 s |\n"
-                "| Groq Qwen3-32B (reasoning) | 49.2% | 34.5 s |\n\n"
-                "_A 7B specialized model beats a 32B reasoning model by 49 pts._"
+                "| Model | Accuracy |\n"
+                "|---|---|\n"
+                "| OpenAI gpt-4o-mini | **96.6%** |\n"
+                "| Groq llama-3.3-70b-versatile | **96.6%** |\n"
+                "| Groq llama-3.1-8b-instant | 94.9% |\n"
+                "| Ollama llama3.2:3b (local) | 67.8% |\n\n"
+                "_Datasets: NYC 311 · Olist E-Commerce · Synthea Healthcare_"
             )
+
+    # ── Example questions loader ───────────────────────────────────────────────
+    _demo_path = "eval/demo_questions.json"
+    _demo_questions: dict = {}
+    try:
+        with open(_demo_path, encoding="utf-8") as _f:
+            _demo_questions = json.load(_f)
+    except Exception:
+        pass
+
+    # Reset example when domain changes
+    if st.session_state.get("_last_domain") != domain:
+        st.session_state["_last_domain"] = domain
+        st.session_state["_example_q"] = ""
 
     # ── Main area ─────────────────────────────────────────────────────────────
     col1, col2 = st.columns([2, 1])
     with col1:
+        default_q = (
+            st.session_state.get("_example_q")
+            or (_demo_questions.get(domain, [""])[0] if _demo_questions.get(domain) else
+                "What are the top 5 most common complaint types across all boroughs?")
+        )
         question = st.text_area(
             "Ask a question about the database:",
-            value="Show me the top 5 customers by total spend",
+            value=default_q,
             height=90,
+            key=f"question_{domain}",
         )
-        b1, b2, b3 = st.columns(3)
+        b1, b2, b3, b4 = st.columns(4)
         do_retrieve = b1.button("🔎 Retrieve Schema", use_container_width=True)
         do_generate = b2.button("✨ Generate SQL",    use_container_width=True)
         do_run      = b3.button("▶ Run SQL",          use_container_width=True)
+        if b4.button("🎲 Example",               use_container_width=True):
+            examples = _demo_questions.get(domain, [])
+            if examples:
+                st.session_state["_example_q"] = random.choice(examples)
+                st.rerun()
 
     with col2:
         st.subheader("Status")

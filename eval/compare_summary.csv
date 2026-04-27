@@ -1,2 +1,0 @@
-model,total_queries,correct,accuracy_%,exec_failures,avg_latency_s,total_cost_usd,avg_cost_per_query_usd,total_tokens
-groq-qwen/qwen3-32b,59,29,49.15,28,34.519,0.0,0.0,0

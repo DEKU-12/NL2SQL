@@ -13,9 +13,9 @@ from typing import Any, List, Tuple
 SQLITE_DIR = Path(__file__).resolve().parents[2] / "data" / "sqlite"
 
 DOMAIN_DB: dict[str, str] = {
-    "chinook": "chinook.db",
-    "northwind": "northwind.db",
-    # dvdrental not available in SQLite bundle — falls back to chinook
+    "nyc_311":          "nyc_311.db",
+    "olist_ecommerce":  "olist_ecommerce.db",
+    "synthea_patients": "synthea_patients.db",
 }
 
 
@@ -32,10 +32,6 @@ def get_sqlite_path(domain: str) -> Path:
 
 def run_sql_sqlite(domain: str, sql: str, max_rows: int = 200) -> Tuple[List[str], List[Tuple[Any, ...]]]:
     """Execute a SELECT query against the bundled SQLite database."""
-    # Map dvdrental → chinook in SQLite mode (dvdrental not bundled)
-    if domain not in DOMAIN_DB:
-        domain = "chinook"
-
     path = get_sqlite_path(domain)
     conn = sqlite3.connect(str(path))
     conn.row_factory = sqlite3.Row

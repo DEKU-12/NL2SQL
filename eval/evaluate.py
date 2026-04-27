@@ -1,24 +1,38 @@
 # eval/evaluate.py
 from __future__ import annotations
 
-import json
+import os
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import json
 from typing import Any, Dict, List
 
 import pandas as pd
 
 from src.rag.retrieve import retrieve_schema_chunks
 from src.t2sql.prompt_builder import build_prompt
-from src.t2sql.generate import call_ollama, extract_sql
+from src.t2sql.generate import call_ollama, call_groq, call_openai, extract_sql
 from src.t2sql.guardrails import validate_and_fix
 from src.t2sql.executor import run_sql
 
 
 GOLD_PATH = Path("eval/gold.jsonl")
 
+# Auto-detect SQLite mode so the LLM is prompted with the correct dialect
+_USE_SQLITE = os.getenv("USE_SQLITE", "").lower() in ("1", "true", "yes")
+SQL_DIALECT = "SQLite" if _USE_SQLITE else "PostgreSQL"
+
+# Backend selection (mutually exclusive; OpenAI takes priority over Groq)
+_USE_OPENAI = bool(os.getenv("OPENAI_API_KEY")) and os.getenv("USE_OPENAI", "1").lower() not in ("0", "false", "no")
+_USE_GROQ   = os.getenv("USE_GROQ", "").lower() in ("1", "true", "yes")
+
 # Config
-OLLAMA_URL = "http://localhost:11434"
-OLLAMA_MODEL = "llama3.2:3b"
+OLLAMA_URL    = "http://localhost:11434"
+OLLAMA_MODEL  = "llama3.2:3b"
+GROQ_MODEL    = os.getenv("GROQ_MODEL",   "llama-3.1-8b-instant")
+OPENAI_MODEL  = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 TOP_K = 15
 LIMIT = 200
 ROUND_DECIMALS = 2
@@ -109,6 +123,14 @@ def main():
 
     cases = load_gold_cases(GOLD_PATH)
 
+    # Print which backend is active
+    if _USE_OPENAI:
+        print(f"Backend: OpenAI ({OPENAI_MODEL})", flush=True)
+    elif _USE_GROQ:
+        print(f"Backend: Groq ({GROQ_MODEL})", flush=True)
+    else:
+        print(f"Backend: Ollama ({OLLAMA_MODEL} @ {OLLAMA_URL})", flush=True)
+
     total = len(cases)
     guardrail_pass_pred = 0
     guardrail_pass_gold = 0
@@ -122,7 +144,8 @@ def main():
 
     report_rows: List[Dict[str, Any]] = []
 
-    for ex in cases:
+    for i, ex in enumerate(cases, 1):
+        print(f"[{i}/{total}] {ex['domain']}: {ex['question'][:60]}...", flush=True)
         domain = ex["domain"]
         question = ex["question"]
         gold_sql_raw = ex["gold_sql"]
@@ -136,9 +159,14 @@ def main():
         # 1) Generate predicted SQL
         try:
             chunks = retrieve_schema_chunks(domain, question, k=TOP_K, persist_dir="data/chroma")
-            prompt = build_prompt(domain=domain, question=question, chunks=chunks, dialect="PostgreSQL")
+            prompt = build_prompt(domain=domain, question=question, chunks=chunks, dialect=SQL_DIALECT)
 
-            raw = call_ollama(prompt=prompt, model=OLLAMA_MODEL, base_url=OLLAMA_URL)
+            if _USE_OPENAI:
+                raw = call_openai(prompt=prompt, model=OPENAI_MODEL)
+            elif _USE_GROQ:
+                raw = call_groq(prompt=prompt, model=GROQ_MODEL)
+            else:
+                raw = call_ollama(prompt=prompt, model=OLLAMA_MODEL, base_url=OLLAMA_URL)
             pred_sql_raw = extract_sql(raw)
 
             pred_sql_safe = validate_and_fix(pred_sql_raw, limit=LIMIT)
