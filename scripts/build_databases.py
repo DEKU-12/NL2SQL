@@ -503,19 +503,19 @@ def _download_olist_kaggle() -> bool:
         kaggle_json.write_text(json.dumps({"username": username, "key": key}))
         kaggle_json.chmod(0o600)
 
-    env = {**os.environ}
-    if api_token:
-        env["KAGGLE_API_TOKEN"] = api_token
-
-    print("  ↓  Running: kaggle datasets download -d olistbr/brazilian-ecommerce ...")
-    result = subprocess.run(
-        [sys.executable, "-m", "kaggle", "datasets", "download",
-         "-d", "olistbr/brazilian-ecommerce",
-         "-p", str(OLIST_DIR), "--unzip"],
-        capture_output=True, text=True, timeout=300, env=env,
-    )
-    if result.returncode != 0:
-        _warn(f"Kaggle download failed:\n{result.stderr[:400]}")
+    print("  ↓  Downloading via kaggle Python API ...")
+    try:
+        from kaggle.api.kaggle_api_extended import KaggleApiExtended
+        api = KaggleApiExtended()
+        api.authenticate()
+        api.dataset_download_files(
+            "olistbr/brazilian-ecommerce",
+            path=str(OLIST_DIR),
+            unzip=True,
+            quiet=False,
+        )
+    except Exception as exc:
+        _warn(f"Kaggle API download failed: {exc}")
         return False
 
     _ok("Olist CSVs downloaded from Kaggle.")

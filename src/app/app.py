@@ -94,22 +94,24 @@ def _ensure_olist_db() -> None:
             kf.write_text(_json.dumps({"username": username, "key": key}))
             kf.chmod(0o600)
 
-        # ── Run kaggle CLI download ────────────────────────────────────────────
+        # ── Download via kaggle Python API (no CLI subprocess needed) ────────────
         with st.spinner("⏳ Downloading Olist dataset from Kaggle (~5 min)..."):
-            dl = subprocess.run(
-                [sys.executable, "-m", "kaggle", "datasets", "download",
-                 "-d", "olistbr/brazilian-ecommerce",
-                 "-p", str(olist_dir), "--unzip"],
-                capture_output=True, text=True, timeout=360, env=env,
-            )
-
-        if dl.returncode != 0:
-            st.warning(
-                f"⚠️ Kaggle download failed (exit {dl.returncode}).\n\n"
-                f"**stdout:** ```{dl.stdout[-600:]}```\n\n"
-                f"**stderr:** ```{dl.stderr[-600:]}```"
-            )
-            return
+            try:
+                from kaggle.api.kaggle_api_extended import KaggleApiExtended
+                api = KaggleApiExtended()
+                api.authenticate()
+                api.dataset_download_files(
+                    "olistbr/brazilian-ecommerce",
+                    path=str(olist_dir),
+                    unzip=True,
+                    quiet=False,
+                )
+            except Exception as kaggle_err:
+                st.warning(
+                    f"⚠️ Kaggle API error: `{kaggle_err}`\n\n"
+                    f"```\n{_tb.format_exc()[-800:]}\n```"
+                )
+                return
 
         # ── Build SQLite DB from downloaded CSVs ──────────────────────────────
         _scripts_dir = Path(__file__).resolve().parents[2] / "scripts"
