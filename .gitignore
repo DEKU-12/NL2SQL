@@ -37,3 +37,4 @@ data/raw/
 .env
 .idea/
 
+__pycache__/
