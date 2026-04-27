@@ -94,21 +94,39 @@ def _ensure_olist_db() -> None:
             kf.write_text(_json.dumps({"username": username, "key": key}))
             kf.chmod(0o600)
 
-        # ── Download via kaggle Python API (no CLI subprocess needed) ────────────
+        # ── Download via Kaggle REST API (works with any KGAT_ token) ────────────
         with st.spinner("⏳ Downloading Olist dataset from Kaggle (~5 min)..."):
             try:
-                from kaggle.api.kaggle_api_extended import KaggleApiExtended
-                api = KaggleApiExtended()
-                api.authenticate()
-                api.dataset_download_files(
-                    "olistbr/brazilian-ecommerce",
-                    path=str(olist_dir),
-                    unzip=True,
-                    quiet=False,
+                import requests, zipfile, io as _io
+                # Build auth header — KGAT_ tokens use Bearer, old keys use Basic
+                if api_token:
+                    auth_headers = {"Authorization": f"Bearer {api_token}"}
+                else:
+                    import base64 as _b64
+                    cred = _b64.b64encode(f"{username}:{key}".encode()).decode()
+                    auth_headers = {"Authorization": f"Basic {cred}"}
+
+                dl_url = (
+                    "https://www.kaggle.com/api/v1/datasets/download"
+                    "/olistbr/brazilian-ecommerce"
                 )
+                resp = requests.get(
+                    dl_url, headers=auth_headers, stream=True, timeout=360
+                )
+                if resp.status_code != 200:
+                    st.warning(
+                        f"⚠️ Kaggle HTTP {resp.status_code}: {resp.text[:400]}"
+                    )
+                    return
+
+                # Unzip the downloaded archive into olist_dir
+                raw_bytes = _io.BytesIO(resp.content)
+                with zipfile.ZipFile(raw_bytes) as z:
+                    z.extractall(olist_dir)
+
             except Exception as kaggle_err:
                 st.warning(
-                    f"⚠️ Kaggle API error: `{kaggle_err}`\n\n"
+                    f"⚠️ Kaggle download error: `{kaggle_err}`\n\n"
                     f"```\n{_tb.format_exc()[-800:]}\n```"
                 )
                 return

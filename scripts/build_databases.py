@@ -503,19 +503,31 @@ def _download_olist_kaggle() -> bool:
         kaggle_json.write_text(json.dumps({"username": username, "key": key}))
         kaggle_json.chmod(0o600)
 
-    print("  ↓  Downloading via kaggle Python API ...")
+    print("  ↓  Downloading via Kaggle REST API ...")
     try:
-        from kaggle.api.kaggle_api_extended import KaggleApiExtended
-        api = KaggleApiExtended()
-        api.authenticate()
-        api.dataset_download_files(
-            "olistbr/brazilian-ecommerce",
-            path=str(OLIST_DIR),
-            unzip=True,
-            quiet=False,
+        import zipfile, io
+        # KGAT_ tokens use Bearer auth; old username+key use HTTP Basic
+        if api_token:
+            auth_headers = {"Authorization": f"Bearer {api_token}"}
+        else:
+            import base64
+            cred = base64.b64encode(f"{username}:{key}".encode()).decode()
+            auth_headers = {"Authorization": f"Basic {cred}"}
+
+        dl_url = (
+            "https://www.kaggle.com/api/v1/datasets/download"
+            "/olistbr/brazilian-ecommerce"
         )
+        resp = requests.get(dl_url, headers=auth_headers, stream=True, timeout=300)
+        if resp.status_code != 200:
+            _warn(f"Kaggle HTTP {resp.status_code}: {resp.text[:300]}")
+            return False
+
+        raw_bytes = io.BytesIO(resp.content)
+        with zipfile.ZipFile(raw_bytes) as z:
+            z.extractall(OLIST_DIR)
     except Exception as exc:
-        _warn(f"Kaggle API download failed: {exc}")
+        _warn(f"Kaggle REST download failed: {exc}")
         return False
 
     _ok("Olist CSVs downloaded from Kaggle.")
