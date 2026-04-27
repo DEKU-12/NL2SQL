@@ -1,0 +1,43 @@
+name: CD — Deploy to HF Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # allow manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    name: Push to HuggingFace Spaces
+    runs-on: ubuntu-latest
+    # Only deploy when CI passes (tests must be green first)
+    needs: []
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history needed for git operations
+
+      - name: Prepare Spaces Dockerfile and README
+        run: |
+          # HF Spaces requires files named exactly Dockerfile and README.md
+          cp spaces.Dockerfile Dockerfile
+          cp spaces_README.md README.md
+
+      - name: Push to HuggingFace Spaces (orphan — no binary history)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name  "github-actions[bot]"
+
+          # Set up authenticated remote
+          git remote add spaces \
+            https://DEKU02:${HF_TOKEN}@huggingface.co/spaces/DEKU02/nl2sql
+
+          # Create a clean orphan commit (no git history = no old binaries)
+          git checkout --orphan hf-deploy
+          git add -A
+          git commit -m "Deploy: $(git log origin/main -1 --pretty='%s') [$(date -u +%Y-%m-%dT%H:%M:%SZ)]"
+
+          git push spaces hf-deploy:main --force
