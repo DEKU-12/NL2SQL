@@ -54,13 +54,14 @@ def _ensure_chroma_index() -> None:
 def _ensure_olist_db() -> None:
     """
     On HF Spaces: try to build olist_ecommerce.db at runtime using Kaggle credentials.
+    Imports build_databases directly (no subprocess) so env vars are always visible.
     Silently skips if no Kaggle secret is set.
     """
     olist_path = Path("data/sqlite/olist_ecommerce.db")
     if olist_path.exists() and olist_path.stat().st_size > 1_000_000:
         return  # already built
 
-    # Avoid duplicate builds within the same session
+    # Avoid duplicate build attempts within the same session
     if st.session_state.get("_olist_build_done"):
         return
 
@@ -70,34 +71,31 @@ def _ensure_olist_db() -> None:
     if not api_token and not (username and key):
         return  # no credentials — skip silently
 
-    st.session_state["_olist_build_done"] = True  # set before run to prevent re-entry
+    st.session_state["_olist_build_done"] = True  # prevent re-entry on reruns
     try:
-        import subprocess
-        with st.spinner("⏳ Downloading Olist database (first boot — ~5 min)..."):
-            result = subprocess.run(
-                [sys.executable, "scripts/build_databases.py", "--only", "olist"],
-                capture_output=True, text=True, timeout=660,
-            )
-        combined = (result.stdout + "\n" + result.stderr).strip()
-        if result.returncode != 0:
-            st.warning(
-                f"⚠️ Olist DB build failed (exit {result.returncode}):\n\n"
-                f"```\n{combined[-800:]}\n```"
-            )
+        import importlib.util, traceback as _tb
+        # Load build_databases.py as a module (no subprocess — env vars stay intact)
+        _scripts_dir = Path(__file__).resolve().parents[2] / "scripts"
+        _spec = importlib.util.spec_from_file_location(
+            "build_databases", _scripts_dir / "build_databases.py"
+        )
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+
+        with st.spinner("⏳ Downloading Olist dataset from Kaggle (first boot — ~5 min)..."):
+            ok = _mod.build_olist()
+
+        if ok and olist_path.exists() and olist_path.stat().st_size > 1_000_000:
+            st.success("✅ Olist database built — reloading...")
+            st.rerun()
         else:
-            # Verify the file was actually created
-            if olist_path.exists() and olist_path.stat().st_size > 1_000_000:
-                st.success("✅ Olist database built successfully — reloading...")
-                st.rerun()
-            else:
-                st.warning(
-                    f"⚠️ Olist build script exited 0 but DB file not found.\n\n"
-                    f"```\n{combined[-800:]}\n```"
-                )
-    except subprocess.TimeoutExpired:
-        st.warning("⚠️ Olist DB build timed out after 11 min. Try a factory reboot.")
-    except Exception as e:
-        st.warning(f"⚠️ Olist DB build error: {e}")
+            st.warning(
+                "⚠️ Olist build returned False. "
+                "Check that **KAGGLE_API_TOKEN** is set correctly as a Space secret."
+            )
+    except Exception:
+        import traceback as _tb
+        st.warning(f"⚠️ Olist DB build error:\n\n```\n{_tb.format_exc()[-1000:]}\n```")
 
 
 def _available_domains() -> list[str]:
