@@ -22,12 +22,18 @@ def strip_code_fences(sql: str) -> str:
 def is_select_only(sql: str) -> bool:
     s = strip_code_fences(sql).strip()
 
+    # Remove single-quoted string literals (handling doubled '' escapes)
+    # before doing any keyword/semicolon scanning, so content inside string
+    # literals cannot trigger false positives (e.g. WHERE action = 'delete').
+    s_no_strings = re.sub(r"'(?:[^']|'')*'", "''", s)
+
     # block multiple statements
     # allow a single trailing ';'
-    if ";" in s[:-1]:
+    if ";" in s_no_strings[:-1]:
         return False
 
     low = s.lower()
+    low_no_strings = s_no_strings.lower()
 
     # must start with SELECT or WITH
     if not (low.startswith("select") or low.startswith("with")):
@@ -35,7 +41,7 @@ def is_select_only(sql: str) -> bool:
 
     # block forbidden keywords anywhere
     for kw in FORBIDDEN:
-        if re.search(rf"\b{re.escape(kw)}\b", low):
+        if re.search(rf"\b{re.escape(kw)}\b", low_no_strings):
             return False
 
     return True
