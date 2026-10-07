@@ -371,10 +371,13 @@ def main():
     except Exception:
         pass
 
-    # Reset example when domain changes
+    # Reset example + previous domain's chunks/SQL/results when domain changes
     if st.session_state.get("_last_domain") != domain:
         st.session_state["_last_domain"] = domain
         st.session_state["_example_q"] = ""
+        st.session_state["chunks"] = []
+        st.session_state["sql"] = ""
+        st.session_state["results_df"] = None
 
     # ── Main area ─────────────────────────────────────────────────────────────
     col1, col2 = st.columns([2, 1])
@@ -432,10 +435,10 @@ def main():
     if do_generate:
         try:
             st.session_state["error"] = ""
-            if not st.session_state["chunks"]:
-                st.session_state["chunks"] = cached_retrieve(
-                    domain, question, k, st.session_state["persist_dir"]
-                )
+            # Always retrieve for the current domain/question (cached) — never reuse stale chunks
+            st.session_state["chunks"] = cached_retrieve(
+                domain, question, k, st.session_state["persist_dir"]
+            )
             # Use SQLite dialect on Spaces (syntax is nearly identical to Postgres for SELECTs)
             dialect = "SQLite" if _HF_MODE else "PostgreSQL"
             prompt = build_prompt(domain=domain, question=question,
@@ -454,10 +457,9 @@ def main():
             st.session_state["error"] = ""
             if not st.session_state["sql"]:
                 # auto-generate first
-                if not st.session_state["chunks"]:
-                    st.session_state["chunks"] = cached_retrieve(
-                        domain, question, k, st.session_state["persist_dir"]
-                    )
+                st.session_state["chunks"] = cached_retrieve(
+                    domain, question, k, st.session_state["persist_dir"]
+                )
                 dialect = "SQLite" if _HF_MODE else "PostgreSQL"
                 prompt = build_prompt(domain=domain, question=question,
                                       chunks=st.session_state["chunks"], dialect=dialect)
