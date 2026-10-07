@@ -349,6 +349,7 @@ def main():
                 "**Benchmark results** (59 gold queries):\n\n"
                 "| Model | Accuracy |\n"
                 "|---|---|\n"
+                "| Anthropic Claude Opus 5.5 | **98.3%** |\n"
                 "| OpenAI gpt-4o-mini | **96.6%** |\n"
                 "| Groq llama-3.3-70b-versatile | **96.6%** |\n"
                 "| Groq llama-3.1-8b-instant | 94.9% |\n"

@@ -39,6 +39,7 @@ Pick a database, enter your API key in the sidebar, ask a question, and click **
 
 | Model | Accuracy (59 gold queries) |
 |---|---|
+| Anthropic Claude Opus 5.5 | **98.3%** |
 | OpenAI gpt-4o-mini | **96.6%** |
 | Groq llama-3.3-70b-versatile (free) | **96.6%** |
 | Groq llama-3.1-8b-instant (free) | 94.9% |
@@ -49,6 +50,7 @@ Pick a database, enter your API key in the sidebar, ask a question, and click **
 | Backend | Key required | Cost |
 |---|---|---|
 | ⚡ Groq llama-3.3-70b | Free at console.groq.com | $0.00 |
+| 🧩 Anthropic Claude Opus 5.5 | console.anthropic.com | Paid |
 | 🤖 OpenAI gpt-4o-mini | platform.openai.com | ~$0.03/59 queries |
 | 🤗 HuggingFace Inference | huggingface.co/settings/tokens | Free tier |
 | 🖥️ Ollama (local) | No key needed | $0.00 |
