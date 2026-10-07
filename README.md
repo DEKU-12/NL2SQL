@@ -17,13 +17,11 @@ Evaluated on 59 hand-curated gold queries across all three domains:
 
 | Model | Accuracy | Cost |
 |---|---|---|
-| Anthropic Claude Opus 5.5 | **97.4%** (38/39)* | Paid |
+| Anthropic Claude Opus 5.5 | **98.3%** (58/59) | Paid |
 | OpenAI gpt-4o-mini | **96.6%** (57/59) | ~$0.03/run |
 | Groq llama-3.3-70b-versatile | **96.6%** (57/59) | Free |
 | Groq llama-3.1-8b-instant | 94.9% (56/59) | Free |
 | Ollama llama3.2:3b (local) | 67.8% (40/59) | Free |
-
-\* Opus 5.5 was run on NYC 311 + Synthea only (39 queries); the Olist queries were skipped.
 
 ---
 
