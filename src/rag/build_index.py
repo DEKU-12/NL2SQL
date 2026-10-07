@@ -37,8 +37,10 @@ def build_domain_index(
         metadata={"domain": domain},
     )
 
-    # --- Table chunks ---
-    chunks = chunk_schema(schema_path)
+    # --- Table chunks (annotated with real column values when the SQLite DB exists) ---
+    from src.db.sqlite_connect import SQLITE_DIR, DOMAIN_DB
+    db_path = SQLITE_DIR / DOMAIN_DB.get(domain, f"{domain}.db")
+    chunks = chunk_schema(schema_path, db_path if db_path.exists() else None)
     ids = [cid for cid, _, _ in chunks]
     docs = [txt for _, txt, _ in chunks]
     metas = [m for _, _, m in chunks]

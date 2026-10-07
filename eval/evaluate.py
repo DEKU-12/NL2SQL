@@ -36,7 +36,7 @@ OLLAMA_MODEL  = "llama3.2:3b"
 GROQ_MODEL    = os.getenv("GROQ_MODEL",   "llama-3.3-70b-versatile")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-5-5")
 OPENAI_MODEL  = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-TOP_K = 15
+TOP_K = 6
 LIMIT = 200
 ROUND_DECIMALS = 2
 

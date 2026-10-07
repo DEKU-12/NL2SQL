@@ -1,5 +1,7 @@
 # src/rag/retrieve.py
 from __future__ import annotations
+import re
+from collections import deque
 from pathlib import Path
 from typing import List, Dict, Any
 import chromadb
@@ -28,6 +30,43 @@ def _add_relationship_chunk(collection, domain: str, out: List[Dict[str, Any]]) 
     except Exception:
         # If not found, ignore
         pass
+
+
+def _expand_join_paths(collection, out: List[Dict[str, Any]]) -> None:
+    """
+    Add bridge tables: for every pair of retrieved tables, add the tables on the
+    shortest foreign-key path between them (e.g. reviews <-> items needs orders).
+    Similarity search alone misses these because bridges don't look like the question.
+    """
+    rel = next((c["text"] for c in out if c.get("meta", {}).get("type") == "relationships"), "")
+    graph: Dict[str, set] = {}
+    for a, b in re.findall(r"^- (\w+)\.\w+ -> (\w+)\.\w+$", rel, flags=re.M):
+        graph.setdefault(a, set()).add(b)
+        graph.setdefault(b, set()).add(a)
+
+    have = [c["meta"]["table"] for c in out if c.get("meta", {}).get("table")]
+    needed: List[str] = []
+    for i, src in enumerate(have):
+        for dst in have[i + 1:]:
+            # BFS shortest path src -> dst
+            prev = {src: None}
+            queue = deque([src])
+            while queue and dst not in prev:
+                node = queue.popleft()
+                for nxt in graph.get(node, ()):
+                    if nxt not in prev:
+                        prev[nxt] = node
+                        queue.append(nxt)
+            node = prev.get(dst)
+            while node and node != src:
+                if node not in have and node not in needed:
+                    needed.append(node)
+                node = prev[node]
+
+    if needed:
+        got = collection.get(ids=[f"{t}__schema" for t in needed])
+        for doc, meta in zip(got.get("documents", []), got.get("metadatas", [])):
+            out.append({"text": doc, "meta": meta, "distance": None})
 
 
 def retrieve_schema_chunks(
@@ -60,5 +99,6 @@ def retrieve_schema_chunks(
 
     # ✅ Ensure join-map is included
     _add_relationship_chunk(collection, domain, out)
+    _expand_join_paths(collection, out)
 
     return out

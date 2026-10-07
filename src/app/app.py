@@ -144,6 +144,10 @@ def _ensure_olist_db() -> None:
             ok = _mod.build_olist()
 
         if ok and olist_path.exists() and olist_path.stat().st_size > 1_000_000:
+            # Index was built before this DB existed — rebuild so chunks get real column values
+            from src.rag.build_index import build_domain_index
+            build_domain_index(domain="olist_ecommerce", schema_path="data/schemas/olist_ecommerce.json",
+                               persist_dir=os.getenv("CHROMA_DIR", "data/chroma"))
             st.success("✅ Olist database built — reloading...")
             st.rerun()
         else:
@@ -270,7 +274,8 @@ def main():
             missing = [DOMAIN_LABELS[d] for d in DOMAINS if d not in avail_domains]
             st.caption(f"⚠️ Unavailable: {', '.join(missing)} — add KAGGLE_API_TOKEN Secret to enable.")
 
-        k = st.slider("Top-K schema chunks", 3, 20, 15)
+        k = st.slider("Top-K schema chunks", 1, 10, 6,
+                      help="K=6 retrieves every needed table on all 59 gold queries (eval/retrieval_recall.py).")
 
         st.divider()
         st.subheader("🤖 LLM Backend")
