@@ -10,11 +10,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pandas as pd
 import streamlit as st
+from dotenv import dotenv_values
 
 from src.rag.retrieve import retrieve_schema_chunks
 from src.t2sql.prompt_builder import build_prompt
 from src.t2sql.guardrails import validate_and_fix
-from src.t2sql.generate import call_ollama, call_openai, call_groq, call_hf_inference, extract_sql
+from src.t2sql.generate import call_ollama, call_openai, call_groq, call_hf_inference, call_anthropic, extract_sql
 from src.t2sql.executor import run_sql
 
 DOMAINS = ["nyc_311", "olist_ecommerce", "synthea_patients"]
@@ -173,14 +174,13 @@ def _available_domains() -> list[str]:
 _USE_SQLITE = os.getenv("USE_SQLITE", "").lower() in ("1", "true", "yes")
 _HF_MODE = _USE_SQLITE
 
+# API keys come ONLY from a local .env file (gitignored + dockerignored).
+# Deployed / other machines have no .env, so visitors must enter their own key.
+_LOCAL_KEYS = dotenv_values(Path(__file__).resolve().parents[2] / ".env")
+
+
 def _default_backend() -> str:
-    if os.getenv("GROQ_API_KEY"):
-        return "groq"
-    if os.getenv("HF_TOKEN"):
-        return "hf"
-    if os.getenv("OPENAI_API_KEY"):
-        return "openai"
-    return "ollama"
+    return "groq"
 
 
 @st.cache_resource
@@ -191,11 +191,13 @@ def get_settings():
         "openai_model": os.getenv("OPENAI_MODEL",  "gpt-4o-mini"),
         "groq_model":   os.getenv("GROQ_MODEL",    "llama-3.3-70b-versatile"),
         "hf_model":     os.getenv("HF_MODEL",      "Qwen/Qwen2.5-Coder-7B-Instruct"),
+        "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-opus-5-5"),
         "persist_dir":  os.getenv("CHROMA_DIR",    "data/chroma"),
         "limit":        int(os.getenv("SQL_MAX_ROWS", "200")),
-        "openai_key":   os.getenv("OPENAI_API_KEY", ""),
-        "groq_key":     os.getenv("GROQ_API_KEY", ""),
-        "hf_token":     os.getenv("HF_TOKEN", ""),
+        "openai_key":   _LOCAL_KEYS.get("OPENAI_API_KEY") or "",
+        "groq_key":     _LOCAL_KEYS.get("GROQ_API_KEY") or "",
+        "hf_token":     _LOCAL_KEYS.get("HF_TOKEN") or "",
+        "anthropic_key": _LOCAL_KEYS.get("ANTHROPIC_API_KEY") or "",
     }
 
 
@@ -204,21 +206,31 @@ def cached_retrieve(domain: str, question: str, k: int, persist_dir: str):
     return retrieve_schema_chunks(domain=domain, question=question, k=k, persist_dir=persist_dir)
 
 
-def llm_generate(prompt: str, cfg: dict, sidebar_openai_key: str, sidebar_groq_key: str, sidebar_hf_token: str) -> str:
-    """Route to HF / Groq / OpenAI / Ollama based on sidebar selection."""
+def llm_generate(prompt: str, cfg: dict, sidebar_openai_key: str, sidebar_groq_key: str, sidebar_hf_token: str,
+                 sidebar_anthropic_key: str) -> str:
+    """Route to HF / Groq / OpenAI / Anthropic / Ollama based on sidebar selection."""
     backend = st.session_state.get("backend", _default_backend())
-    if backend == "hf":
-        api_key = sidebar_hf_token or cfg["hf_token"]
-        return call_hf_inference(prompt, model=cfg["hf_model"], api_key=api_key)
-    elif backend == "groq":
-        api_key = sidebar_groq_key or cfg["groq_key"]
-        return call_groq(prompt, model=cfg["groq_model"], api_key=api_key)
-    elif backend == "openai":
-        api_key = sidebar_openai_key or cfg["openai_key"]
-        return call_openai(prompt, model=cfg["openai_model"], api_key=api_key)
-    else:
+    if backend == "ollama":
         return call_ollama(prompt, model=st.session_state["ollama_model"],
                            base_url=st.session_state["ollama_url"])
+
+    keys = {
+        "hf":        sidebar_hf_token or cfg["hf_token"],
+        "groq":      sidebar_groq_key or cfg["groq_key"],
+        "openai":    sidebar_openai_key or cfg["openai_key"],
+        "anthropic": sidebar_anthropic_key or cfg["anthropic_key"],
+    }
+    api_key = keys[backend]
+    # Never fall back to server env vars — visitors must bring their own key.
+    if not api_key:
+        raise ValueError("Please enter your API key in the sidebar to generate SQL.")
+    if backend == "hf":
+        return call_hf_inference(prompt, model=cfg["hf_model"], api_key=api_key)
+    elif backend == "groq":
+        return call_groq(prompt, model=cfg["groq_model"], api_key=api_key)
+    elif backend == "openai":
+        return call_openai(prompt, model=cfg["openai_model"], api_key=api_key)
+    return call_anthropic(prompt, model=cfg["anthropic_model"], api_key=api_key)
 
 
 def main():
@@ -263,9 +275,10 @@ def main():
         st.divider()
         st.subheader("🤖 LLM Backend")
 
-        backend_options = ["groq", "openai", "ollama", "hf"] if not _HF_MODE else ["groq", "openai", "hf"]
+        backend_options = ["groq", "anthropic", "openai", "ollama", "hf"] if not _HF_MODE else ["groq", "anthropic", "openai", "hf"]
         backend_labels = {
             "groq":   "⚡ Groq — llama-3.3-70b (free, fast)",
+            "anthropic": "🧩 Anthropic — Claude Opus 5.5",
             "openai": "🤖 OpenAI — gpt-4o-mini",
             "ollama": "🖥️ Ollama — local model",
             "hf":     "🤗 HuggingFace Inference API",
@@ -283,13 +296,14 @@ def main():
         groq_key_input = ""
         openai_key_input = ""
         sidebar_hf_token = ""
+        anthropic_key_input = ""
 
         if backend == "hf":
             sidebar_hf_token = st.text_input(
                 "HF Token",
                 type="password",
                 value="",
-                placeholder="hf_..." if not cfg["hf_token"] else "set via env ✓",
+                placeholder="hf_..." if not cfg["hf_token"] else "set via .env ✓",
                 help="Free at huggingface.co/settings/tokens (Read token is enough).",
             )
             st.caption(f"Model: `{cfg['hf_model']}`")
@@ -299,16 +313,25 @@ def main():
                 "Groq API Key",
                 type="password",
                 value="",
-                placeholder="gsk_..." if not cfg["groq_key"] else "set via env ✓",
+                placeholder="gsk_..." if not cfg["groq_key"] else "set via .env ✓",
                 help="Free at console.groq.com — stored only in session memory.",
             )
             st.caption(f"Model: `{cfg['groq_model']}`")
+        elif backend == "anthropic":
+            anthropic_key_input = st.text_input(
+                "Anthropic API Key",
+                type="password",
+                value="",
+                placeholder="sk-ant-..." if not cfg["anthropic_key"] else "set via .env ✓",
+                help="Get one at console.anthropic.com — stored only in session memory.",
+            )
+            st.caption(f"Model: `{cfg['anthropic_model']}`")
         elif backend == "openai":
             openai_key_input = st.text_input(
                 "OpenAI API Key",
                 type="password",
                 value="",
-                placeholder="sk-..." if not cfg["openai_key"] else "set via env ✓",
+                placeholder="sk-..." if not cfg["openai_key"] else "set via .env ✓",
                 help="Stored only in session memory — never persisted.",
             )
             st.caption(f"Model: `{cfg['openai_model']}`")
@@ -412,7 +435,7 @@ def main():
             prompt = build_prompt(domain=domain, question=question,
                                   chunks=st.session_state["chunks"], dialect=dialect)
             with st.spinner("Generating SQL..."):
-                raw = llm_generate(prompt, cfg, openai_key_input, groq_key_input, sidebar_hf_token)
+                raw = llm_generate(prompt, cfg, openai_key_input, groq_key_input, sidebar_hf_token, anthropic_key_input)
             sql = validate_and_fix(extract_sql(raw), limit=int(limit))
             st.session_state["sql"] = sql
             st.success("SQL generated ✓  (SELECT-only + LIMIT enforced)")
@@ -433,7 +456,7 @@ def main():
                 prompt = build_prompt(domain=domain, question=question,
                                       chunks=st.session_state["chunks"], dialect=dialect)
                 with st.spinner("Generating SQL..."):
-                    raw = llm_generate(prompt, cfg, openai_key_input, groq_key_input, sidebar_hf_token)
+                    raw = llm_generate(prompt, cfg, openai_key_input, groq_key_input, sidebar_hf_token, anthropic_key_input)
                 st.session_state["sql"] = validate_and_fix(extract_sql(raw), limit=int(limit))
 
             with st.spinner("Running query..."):

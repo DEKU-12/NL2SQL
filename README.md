@@ -17,10 +17,13 @@ Evaluated on 59 hand-curated gold queries across all three domains:
 
 | Model | Accuracy | Cost |
 |---|---|---|
+| Anthropic Claude Opus 5.5 | **97.4%** (38/39)* | Paid |
 | OpenAI gpt-4o-mini | **96.6%** (57/59) | ~$0.03/run |
 | Groq llama-3.3-70b-versatile | **96.6%** (57/59) | Free |
 | Groq llama-3.1-8b-instant | 94.9% (56/59) | Free |
 | Ollama llama3.2:3b (local) | 67.8% (40/59) | Free |
+
+\* Opus 5.5 was run on NYC 311 + Synthea only (39 queries); the Olist queries were skipped.
 
 ---
 
@@ -128,13 +131,12 @@ USE_SQLITE=true streamlit run src/app/app.py
 ## Running the Benchmark
 
 ```bash
-# Groq (free, fast)
-USE_SQLITE=true USE_GROQ=1 GROQ_MODEL=llama-3.3-70b-versatile \
-  python eval/evaluate.py
+# Keys are read from .env. Groq is the default backend.
+USE_SQLITE=true python eval/evaluate.py
 
-# OpenAI
-USE_SQLITE=true OPENAI_API_KEY=sk-... \
-  python eval/evaluate.py
+# Anthropic Claude Opus 5.5 / OpenAI
+USE_SQLITE=true EVAL_BACKEND=anthropic python eval/evaluate.py
+USE_SQLITE=true EVAL_BACKEND=openai python eval/evaluate.py
 
 # Results saved to eval/report.csv
 ```

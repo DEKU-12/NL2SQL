@@ -53,6 +53,29 @@ def call_groq(prompt: str, model: str = "llama-3.3-70b-versatile", api_key: str 
     return response.choices[0].message.content or ""
 
 
+def call_anthropic(prompt: str, model: str = "claude-opus-5-5", api_key: str | None = None) -> str:
+    """
+    Call Anthropic's Messages API. Opus 5.5 rejects `temperature`; depth is set via effort.
+    """
+    import anthropic
+    key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
+    if not key:
+        raise ValueError("ANTHROPIC_API_KEY is not set. Get a key at console.anthropic.com.")
+    client = anthropic.Anthropic(api_key=key)
+    response = client.beta.messages.create(
+        model=model,
+        max_tokens=16000,
+        system="You are a precise Text-to-SQL generator. Output ONLY SQL.",
+        messages=[{"role": "user", "content": prompt}],
+        output_config={"effort": "medium"},
+        betas=["server-side-fallback-2026-07-01"],
+        fallbacks="default",
+    )
+    if response.stop_reason == "refusal":
+        raise RuntimeError("Anthropic declined this request.")
+    return "".join(b.text for b in response.content if b.type == "text")
+
+
 def call_openai(prompt: str, model: str = "gpt-4o-mini", api_key: str | None = None) -> str:
     """
     Call OpenAI chat completion API. Used on HF Spaces (no local Ollama).

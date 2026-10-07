@@ -13,10 +13,13 @@ import pandas as pd
 
 from src.rag.retrieve import retrieve_schema_chunks
 from src.t2sql.prompt_builder import build_prompt
-from src.t2sql.generate import call_ollama, call_groq, call_openai, extract_sql
+from dotenv import load_dotenv
+from src.t2sql.generate import call_ollama, call_groq, call_openai, call_anthropic, extract_sql
 from src.t2sql.guardrails import validate_and_fix
 from src.t2sql.executor import run_sql
 
+
+load_dotenv()
 
 GOLD_PATH = Path("eval/gold.jsonl")
 
@@ -24,14 +27,14 @@ GOLD_PATH = Path("eval/gold.jsonl")
 _USE_SQLITE = os.getenv("USE_SQLITE", "").lower() in ("1", "true", "yes")
 SQL_DIALECT = "SQLite" if _USE_SQLITE else "PostgreSQL"
 
-# Backend selection (mutually exclusive; OpenAI takes priority over Groq)
-_USE_OPENAI = bool(os.getenv("OPENAI_API_KEY")) and os.getenv("USE_OPENAI", "1").lower() not in ("0", "false", "no")
-_USE_GROQ   = os.getenv("USE_GROQ", "").lower() in ("1", "true", "yes")
+# Backend: groq (default) | anthropic | openai | ollama
+BACKEND = os.getenv("EVAL_BACKEND", "groq").lower()
 
 # Config
 OLLAMA_URL    = "http://localhost:11434"
 OLLAMA_MODEL  = "llama3.2:3b"
-GROQ_MODEL    = os.getenv("GROQ_MODEL",   "llama-3.1-8b-instant")
+GROQ_MODEL    = os.getenv("GROQ_MODEL",   "llama-3.3-70b-versatile")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-5-5")
 OPENAI_MODEL  = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 TOP_K = 15
 LIMIT = 200
@@ -124,9 +127,11 @@ def main():
     cases = load_gold_cases(GOLD_PATH)
 
     # Print which backend is active
-    if _USE_OPENAI:
+    if BACKEND == "openai":
         print(f"Backend: OpenAI ({OPENAI_MODEL})", flush=True)
-    elif _USE_GROQ:
+    elif BACKEND == "anthropic":
+        print(f"Backend: Anthropic ({ANTHROPIC_MODEL})", flush=True)
+    elif BACKEND == "groq":
         print(f"Backend: Groq ({GROQ_MODEL})", flush=True)
     else:
         print(f"Backend: Ollama ({OLLAMA_MODEL} @ {OLLAMA_URL})", flush=True)
@@ -161,9 +166,11 @@ def main():
             chunks = retrieve_schema_chunks(domain, question, k=TOP_K, persist_dir="data/chroma")
             prompt = build_prompt(domain=domain, question=question, chunks=chunks, dialect=SQL_DIALECT)
 
-            if _USE_OPENAI:
+            if BACKEND == "openai":
                 raw = call_openai(prompt=prompt, model=OPENAI_MODEL)
-            elif _USE_GROQ:
+            elif BACKEND == "anthropic":
+                raw = call_anthropic(prompt=prompt, model=ANTHROPIC_MODEL)
+            elif BACKEND == "groq":
                 raw = call_groq(prompt=prompt, model=GROQ_MODEL)
             else:
                 raw = call_ollama(prompt=prompt, model=OLLAMA_MODEL, base_url=OLLAMA_URL)
