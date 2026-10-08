@@ -20,7 +20,12 @@ Schema-aware RAG · SQL guardrails · bring-your-own LLM · three real-world dat
 ## 🎬 Demo
 
 <!-- DEMO VIDEO: edit this file on GitHub, delete the line below, and drag nl2sql-demo.mp4 into its place. GitHub uploads it and inserts a link that plays inline. -->
-*Demo video coming here — 40 seconds of the real app: question → SQL → results.*
+*Demo video *
+
+
+https://github.com/user-attachments/assets/cbc28f69-37a5-411e-b166-10d98d44ee13
+
+
 
 ---
 
